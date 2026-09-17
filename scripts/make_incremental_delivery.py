@@ -143,7 +143,7 @@ def main(argv: list[str] | None = None) -> int:
                     late[header.index("STOP")] = (late_start + dt.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
                     writer.writerow(late)
             if file_key == "observations":
-                for patient_id, (template, start) in latest_encounter.items():
+                for patient_id, (_template, start) in latest_encounter.items():
                     if kinds[patient_id] != "late_arrival":
                         continue
                     late_start = dt.datetime.fromisoformat(start.replace("Z", "+00:00")) - dt.timedelta(days=45)

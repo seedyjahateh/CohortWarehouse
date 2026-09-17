@@ -42,7 +42,6 @@ def benchmark(*, profile: str = "demo", runs: int = 3, manifest: str | None = No
     load_started = time.perf_counter()
     ingest_result = ingest(manifest)
     load_seconds = time.perf_counter() - load_started
-    accepted = sum(f.accepted for f in ingest_result.files.values())
 
     measurements = []
     for index in range(runs):
