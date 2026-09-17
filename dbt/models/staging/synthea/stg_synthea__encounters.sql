@@ -1,4 +1,5 @@
 -- Grain: one source encounter in the selected input revision. Timestamps normalised to UTC.
+-- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (
     {{ snapshot_rows('encounters', 'patient') }}
 )
@@ -14,9 +15,11 @@ select
     provider as provider_id,
     payer as payer_id,
     start::timestamptz as start_at,
-    stop::timestamptz as stop_at,
+    {{ valid_end('start::timestamptz', 'stop::timestamptz') }} as stop_at,
     {{ utc_date('start::timestamptz') }} as start_date,
-    {{ utc_date('stop::timestamptz') }} as stop_date,
+    {{ utc_date(valid_end('start::timestamptz', 'stop::timestamptz')) }} as stop_date,
+    stop as source_stop_value,
+    {{ end_status('start::timestamptz', 'stop::timestamptz') }} as stop_status,
     lower(encounterclass) as encounter_class,
     code as encounter_code,
     description as encounter_description,

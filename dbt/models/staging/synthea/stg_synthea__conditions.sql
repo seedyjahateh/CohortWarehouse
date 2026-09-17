@@ -1,4 +1,5 @@
 -- Grain: one source condition record (identical records preserved) in the selected input revision.
+-- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (
     {{ snapshot_rows('conditions', 'patient') }}
 )
@@ -11,7 +12,9 @@ select
     patient as patient_id,
     encounter as encounter_id,
     start::date as start_date,
-    stop::date as stop_date,
+    {{ valid_end('start::date', 'stop::date') }} as stop_date,
+    stop as source_stop_value,
+    {{ end_status('start::date', 'stop::date') }} as stop_status,
     system as source_system,
     code as source_code,
     description as source_description

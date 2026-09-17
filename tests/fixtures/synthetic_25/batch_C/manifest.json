@@ -15,7 +15,7 @@
     "arguments": [
       "scripts/build_fixture.py"
     ],
-    "config_sha256": "b891ded86b012993c4bec9e214b9765755a2798f0ce71bf7e176667ecc6bcdd8",
+    "config_sha256": "e715d1d2cef2866213d00bbfffd1e92ce0d4455dde16bd095cedf84cf7aabcb5",
     "simulation_end_date": "2026-06-30"
   },
   "source_contract_version": "synthea-csv-1.0",

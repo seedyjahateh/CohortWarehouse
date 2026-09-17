@@ -54,6 +54,12 @@ select 'plausibility', 'encounter duration p50', encounter_class,
 from {{ ref('int_encounters') }} where duration_minutes is not null group by encounter_class
 
 union all
+select 'conformance', 'stop before start (value nulled, event kept)', source_file, count(*), 'rows'
+from {{ ref('int_exclusion_ledger') }}
+where exclusion_category = 'data_quality' and reason = 'stop_before_start_nulled'
+group by source_file
+
+union all
 select 'plausibility', 'encounters without stop time', 'all', count(*), 'rows'
 from {{ ref('int_encounters') }} where stop_at is null
 

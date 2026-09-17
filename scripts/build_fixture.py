@@ -166,11 +166,13 @@ def person_rows(b: Batch, n: int, *, variant: str = "A") -> None:
         b.encounter(5, 2, "2026-06-10T09:00:00Z")
         b.condition(5, "2018-02-01", HTN_E, stop="2026-06-29")
         b.observation(5, "2026-06-10T09:10:00Z", SYS, "150", "mm[Hg]", enc=e(2))
-    elif n == 6:  # Condition stop exactly on D (still active); no systolic at all.
+    elif n == 6:  # Condition stop exactly on D (still active); no systolic; medication STOP before START.
         b.patient(6, "1965-11-30", gender="M")
         b.encounter(6, 1, "2026-02-02T11:00:00Z")
         b.condition(6, "2020-02-02", HTN_E, stop="2026-06-30")
         b.observation(6, "2026-02-02T11:10:00Z", WEIGHT, "88.2", "kg", enc=e(1))
+        # Real Synthea v3.3.0 defect shape: STOP ~6 days before START. Event kept, stop nulled and ledgered.
+        b.medication(6, "2026-02-02T11:30:00Z", LISINOPRIL, stop="2026-01-27T11:32:00Z", enc=e(1), dispenses="30")
     elif n == 7:  # Condition starting after D; encounter after D does not count.
         b.patient(7, "1990-04-04", eth="hispanic")
         b.encounter(7, 1, "2026-03-01T09:00:00Z")

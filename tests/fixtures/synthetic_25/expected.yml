@@ -56,3 +56,4 @@ exclusions:
   orphan_patient_rows: {encounters: 1, conditions: 1}   # patient ...0099 does not exist
   unresolved_visit_links: {conditions: 1}               # P21 references a missing encounter
   omop_person_excluded: [22]                            # no supported events
+  stop_before_start_nulled: {medications: 1}            # P06 lisinopril: event kept, end value nulled

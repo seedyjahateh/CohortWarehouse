@@ -37,6 +37,21 @@ where p.patient_id is null
 
 union all
 
+-- Source data-quality exceptions: impossible STOP values nulled, event retained (macros/end_date_policy.sql).
+select 'data_quality', stop_status, 'encounters', 'encounter-row:' || source_row_fingerprint, null, 'star,omop',
+       true, false, source_batch_id, source_record_number
+from {{ ref('stg_synthea__encounters') }} where stop_status = 'stop_before_start_nulled'
+union all
+select 'data_quality', stop_status, 'conditions', 'conditions-row:' || source_row_fingerprint, null, 'star,omop',
+       true, false, source_batch_id, source_record_number
+from {{ ref('stg_synthea__conditions') }} where stop_status = 'stop_before_start_nulled'
+union all
+select 'data_quality', stop_status, 'medications', 'medications-row:' || source_row_fingerprint, null,
+       'star,omop', true, false, source_batch_id, source_record_number
+from {{ ref('stg_synthea__medications') }} where stop_status = 'stop_before_start_nulled'
+
+union all
+
 -- Visit links: unresolved links are nulled but the event is kept; wrong-person links block publication.
 select 'visit_link', encounter_link_status, 'conditions', source_event_key, null, 'star,omop',
        encounter_link_status = 'unresolved', encounter_link_status = 'wrong_person',

@@ -1,4 +1,5 @@
 -- Grain: one source medication record (identical records preserved) in the selected input revision.
+-- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (
     {{ snapshot_rows('medications', 'patient') }}
 )
@@ -11,9 +12,11 @@ select
     patient as patient_id,
     encounter as encounter_id,
     start::timestamptz as start_at,
-    stop::timestamptz as stop_at,
+    {{ valid_end('start::timestamptz', 'stop::timestamptz') }} as stop_at,
     {{ utc_date('start::timestamptz') }} as start_date,
-    {{ utc_date('stop::timestamptz') }} as stop_date,
+    {{ utc_date(valid_end('start::timestamptz', 'stop::timestamptz')) }} as stop_date,
+    stop as source_stop_value,
+    {{ end_status('start::timestamptz', 'stop::timestamptz') }} as stop_status,
     null::text as source_system,
     code as source_code,
     description as source_description,

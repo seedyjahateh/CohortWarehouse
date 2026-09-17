@@ -31,6 +31,9 @@ models:
       - {name: encounter_id, data_tests: [unique, not_null]}
       - {name: patient_id, data_tests: [not_null]}
       - {name: start_at, data_tests: [not_null]}
+      - name: stop_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, valid, stop_before_start_nulled]}}
     data_tests:
       - end_not_before_start: {arguments: {start_column: start_at, end_column: stop_at}}
 
@@ -41,6 +44,9 @@ models:
       - {name: patient_id, data_tests: [not_null]}
       - {name: start_date, data_tests: [not_null]}
       - {name: source_code, data_tests: [not_null]}
+      - name: stop_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, valid, stop_before_start_nulled]}}
     data_tests:
       - end_not_before_start: {arguments: {start_column: start_date, end_column: stop_date}}
 
@@ -50,6 +56,9 @@ models:
     columns:
       - {name: patient_id, data_tests: [not_null]}
       - {name: start_at, data_tests: [not_null]}
+      - name: stop_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, valid, stop_before_start_nulled]}}
     data_tests:
       - end_not_before_start: {arguments: {start_column: start_at, end_column: stop_at}}
 

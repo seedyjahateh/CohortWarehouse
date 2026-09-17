@@ -69,6 +69,21 @@ def test_02_baseline_run_validates_and_matches_hand_derived_cohorts(disposable_d
     STATE["p01_key"] = _patient_key(1)
 
 
+def test_02b_impossible_stop_is_nulled_ledgered_and_imputed_not_dropped(disposable_database, expected):
+    nulled = query("select source_file, count(*) from work_omop.cw_exclusion_ledger "
+                   "where reason = 'stop_before_start_nulled' and event_retained group by source_file")
+    assert dict(nulled) == expected["exclusions"]["stop_before_start_nulled"]
+    p06 = _patient_key(6)
+    # The event survives in the star with no end value...
+    assert query("select end_date_key, end_date from work_star.fct_medication where patient_key = %s", (p06,)) == [
+        (0, None)]
+    # ...and OMOP's required end date is the documented start-date imputation, flagged in the crosswalk.
+    assert query("select drug_exposure_end_date = drug_exposure_start_date, verbatim_end_date "
+                 "from work_omop.drug_exposure where person_id = %s", (p06,)) == [(True, None)]
+    assert query("select end_date_imputed from work_omop.cw_event_crosswalk "
+                 "where destination_table = 'drug_exposure' and person_id = %s", (p06,)) == [(True,)]
+
+
 def test_03_publish_baseline_and_bi_reader_sees_it(disposable_database, expected):
     release = publish(STATE["run_A"])
     assert release["release_id"] == "r0001"
