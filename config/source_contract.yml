@@ -1,0 +1,147 @@
+# Versioned source contract for the Synthea CSV exporter (ING-02, ING-03).
+# Reference: https://github.com/synthetichealth/synthea/wiki/CSV-File-Data-Dictionary
+#
+# header:   required -> a missing/renamed column fails the batch
+#           optional -> may be absent (older exporters); loaded as NULL when absent
+# type:     id | date | timestamp | decimal | text
+#           id/date/timestamp values are validated at load; failures are quarantined.
+#           decimal/text stay text in raw; staging records parse status (STG-02).
+# nullable: false -> blank value is quarantined
+# load:     false -> column is recognised but intentionally NOT loaded (minimum necessary).
+#           Direct identifiers never enter the warehouse, not even raw.
+# Header names are matched case-sensitively; raw column = lower-case header.
+# Unknown extra headers are recorded in ops.batch_file.extra_columns and ignored.
+contract_version: synthea-csv-1.0
+row_fingerprint: sha256-canonical-v1
+
+files:
+  patients:
+    filename: patients.csv
+    patient_column: Id
+    columns:
+      - {name: Id,          type: id,   header: required, nullable: false}
+      - {name: BIRTHDATE,   type: date, header: required, nullable: false}
+      - {name: DEATHDATE,   type: date, header: required, nullable: true}
+      - {name: RACE,        type: text, header: required, nullable: true}
+      - {name: ETHNICITY,   type: text, header: required, nullable: true}
+      - {name: GENDER,      type: text, header: required, nullable: true}
+      - {name: STATE,       type: text, header: required, nullable: true}
+      - {name: COUNTY,      type: text, header: optional, nullable: true}
+      - {name: SSN,         type: text, header: optional, load: false}
+      - {name: DRIVERS,     type: text, header: optional, load: false}
+      - {name: PASSPORT,    type: text, header: optional, load: false}
+      - {name: PREFIX,      type: text, header: optional, load: false}
+      - {name: FIRST,       type: text, header: optional, load: false}
+      - {name: MIDDLE,      type: text, header: optional, load: false}
+      - {name: LAST,        type: text, header: optional, load: false}
+      - {name: SUFFIX,      type: text, header: optional, load: false}
+      - {name: MAIDEN,      type: text, header: optional, load: false}
+      - {name: MARITAL,     type: text, header: optional, load: false}
+      - {name: BIRTHPLACE,  type: text, header: optional, load: false}
+      - {name: ADDRESS,     type: text, header: optional, load: false}
+      - {name: CITY,        type: text, header: optional, load: false}
+      - {name: FIPS,        type: text, header: optional, load: false}
+      - {name: ZIP,         type: text, header: optional, load: false}
+      - {name: LAT,         type: text, header: optional, load: false}
+      - {name: LON,         type: text, header: optional, load: false}
+      - {name: HEALTHCARE_EXPENSES, type: text, header: optional, load: false}
+      - {name: HEALTHCARE_COVERAGE, type: text, header: optional, load: false}
+      - {name: INCOME,      type: text, header: optional, load: false}
+
+  encounters:
+    filename: encounters.csv
+    patient_column: PATIENT
+    columns:
+      - {name: Id,                  type: id,        header: required, nullable: false}
+      - {name: START,               type: timestamp, header: required, nullable: false}
+      - {name: STOP,                type: timestamp, header: required, nullable: true}
+      - {name: PATIENT,             type: id,        header: required, nullable: false}
+      - {name: ORGANIZATION,        type: id,        header: required, nullable: true}
+      - {name: PROVIDER,            type: id,        header: optional, nullable: true}
+      - {name: PAYER,               type: id,        header: optional, nullable: true}
+      - {name: ENCOUNTERCLASS,      type: text,      header: required, nullable: false}
+      - {name: CODE,                type: text,      header: required, nullable: true}
+      - {name: DESCRIPTION,         type: text,      header: required, nullable: true}
+      - {name: BASE_ENCOUNTER_COST, type: decimal,   header: required, nullable: true}
+      - {name: TOTAL_CLAIM_COST,    type: decimal,   header: required, nullable: true}
+      - {name: PAYER_COVERAGE,      type: decimal,   header: optional, nullable: true}
+      - {name: REASONCODE,          type: text,      header: optional, nullable: true}
+      - {name: REASONDESCRIPTION,   type: text,      header: optional, nullable: true}
+
+  conditions:
+    filename: conditions.csv
+    patient_column: PATIENT
+    # Older exporters omit SYSTEM; staging then applies the documented table-level
+    # default (SNOMED-CT) and flags the assumption (MAP-01).
+    columns:
+      - {name: START,       type: date, header: required, nullable: false}
+      - {name: STOP,        type: date, header: required, nullable: true}
+      - {name: PATIENT,     type: id,   header: required, nullable: false}
+      - {name: ENCOUNTER,   type: id,   header: required, nullable: true}
+      - {name: SYSTEM,      type: text, header: optional, nullable: true}
+      - {name: CODE,        type: text, header: required, nullable: false}
+      - {name: DESCRIPTION, type: text, header: required, nullable: true}
+
+  medications:
+    filename: medications.csv
+    patient_column: PATIENT
+    columns:
+      - {name: START,             type: timestamp, header: required, nullable: false}
+      - {name: STOP,              type: timestamp, header: required, nullable: true}
+      - {name: PATIENT,           type: id,        header: required, nullable: false}
+      - {name: PAYER,             type: id,        header: optional, nullable: true}
+      - {name: ENCOUNTER,         type: id,        header: required, nullable: true}
+      - {name: CODE,              type: text,      header: required, nullable: false}
+      - {name: DESCRIPTION,       type: text,      header: required, nullable: true}
+      - {name: BASE_COST,         type: decimal,   header: required, nullable: true}
+      - {name: PAYER_COVERAGE,    type: decimal,   header: optional, nullable: true}
+      - {name: DISPENSES,         type: decimal,   header: required, nullable: true}
+      - {name: TOTALCOST,         type: decimal,   header: required, nullable: true}
+      - {name: REASONCODE,        type: text,      header: optional, nullable: true}
+      - {name: REASONDESCRIPTION, type: text,      header: optional, nullable: true}
+
+  observations:
+    filename: observations.csv
+    patient_column: PATIENT
+    columns:
+      - {name: DATE,        type: timestamp, header: required, nullable: false}
+      - {name: PATIENT,     type: id,        header: required, nullable: false}
+      - {name: ENCOUNTER,   type: id,        header: required, nullable: true}
+      - {name: CATEGORY,    type: text,      header: optional, nullable: true}
+      - {name: CODE,        type: text,      header: required, nullable: false}
+      - {name: DESCRIPTION, type: text,      header: required, nullable: true}
+      - {name: VALUE,       type: text,      header: required, nullable: true}
+      - {name: UNITS,       type: text,      header: required, nullable: true}
+      - {name: TYPE,        type: text,      header: required, nullable: true}
+
+  organizations:
+    filename: organizations.csv
+    patient_column: null     # complete reference snapshot in every batch
+    columns:
+      - {name: Id,          type: id,      header: required, nullable: false}
+      - {name: NAME,        type: text,    header: required, nullable: true}
+      - {name: ADDRESS,     type: text,    header: optional, load: false}
+      - {name: CITY,        type: text,    header: required, nullable: true}
+      - {name: STATE,       type: text,    header: required, nullable: true}
+      - {name: ZIP,         type: text,    header: optional, load: false}
+      - {name: LAT,         type: text,    header: optional, load: false}
+      - {name: LON,         type: text,    header: optional, load: false}
+      - {name: PHONE,       type: text,    header: optional, load: false}
+      - {name: REVENUE,     type: text,    header: optional, load: false}
+      - {name: UTILIZATION, type: text,    header: optional, load: false}
+
+# Source files deliberately outside P0 ingestion. Listed so source accounting can
+# report them as scope exclusions rather than silently ignoring them.
+excluded_files:
+  - {filename: allergies.csv,        priority: P2}
+  - {filename: careplans.csv,        priority: P2}
+  - {filename: claims.csv,           priority: P2}
+  - {filename: claims_transactions.csv, priority: P2}
+  - {filename: devices.csv,          priority: P2}
+  - {filename: imaging_studies.csv,  priority: P2}
+  - {filename: immunizations.csv,    priority: P1}
+  - {filename: payer_transitions.csv, priority: P2}
+  - {filename: payers.csv,           priority: P2}
+  - {filename: procedures.csv,       priority: P1}
+  - {filename: providers.csv,        priority: P1}
+  - {filename: supplies.csv,         priority: P2}

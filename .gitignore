@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# dbt build output
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+logs/
+
+# Generated data. Batches, vocabularies and run artifacts never enter Git.
+/data/
+/vocabulary/
+/artifacts/
+/tools/
+
+# Airflow local state
+airflow/logs/
+airflow/plugins/__pycache__/
+
+# Power BI autosave / cache (the .pbix deliverable itself is committed)
+bi/**/*.pbix.bak
+bi/**/.pbi/cache.abf

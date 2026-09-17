@@ -1,0 +1,12 @@
+# ING-07: only batches produced by an approved synthetic generator may be loaded.
+# This is a workflow contract, NOT a PHI detector. Adding an entry requires a
+# recorded provenance review (docs/decisions/).
+approved_generators:
+  - name: synthea
+    versions: ["v3.3.0"]
+    use: release_benchmark
+    reviewed: 2026-09-15
+  - name: cohortwarehouse-fixture-builder
+    versions: ["1"]
+    use: test_fixture_only
+    reviewed: 2026-09-15

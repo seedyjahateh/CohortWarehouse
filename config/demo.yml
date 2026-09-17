@@ -1,0 +1,29 @@
+# Release benchmark generation (ING-01). Every value here is recorded in the manifest.
+dataset_id: synthea_demo
+generator:
+  name: synthea
+  version: v3.3.0
+  # Download https://github.com/synthetichealth/synthea/releases/download/v3.3.0/synthea-with-dependencies.jar
+  # and record its SHA-256 below after the first verified download.
+  jar_path: tools/synthea-with-dependencies.jar
+  jar_sha256: null
+  seed: 20260915
+  clinician_seed: 20260915
+  requested_population: 1000
+  location: Massachusetts
+  simulation_end_date: 2026-06-30
+  # Exporter settings passed as --key=value overrides (hashed into config_sha256).
+  properties:
+    exporter.csv.export: "true"
+    exporter.fhir.export: "false"
+    exporter.hospital.fhir.export: "false"
+    exporter.practitioner.fhir.export: "false"
+    exporter.ccda.export: "false"
+    exporter.baseDirectory: "{output_dir}"
+    exporter.years_of_history: "10"
+    generate.only_alive_patients: "false"
+output_root: data/deliveries/synthea_demo
+delivery:
+  kind: frozen_demo
+  source_revision: 1
+  replacement_mode: full

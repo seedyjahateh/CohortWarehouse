@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cohortwarehouse.local/schemas/manifest-v1.json",
+  "title": "CohortWarehouse delivery manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version", "dataset_id", "batch_id", "source_revision", "as_of_date",
+    "delivered_at", "replacement_mode", "synthetic", "generator",
+    "source_contract_version", "files"
+  ],
+  "properties": {
+    "manifest_version": {"const": 1},
+    "dataset_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$"},
+    "batch_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$"},
+    "source_revision": {"type": "integer", "minimum": 1},
+    "as_of_date": {"type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "delivered_at": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"},
+    "delivery_kind": {"enum": ["scheduled", "manual", "frozen_demo"]},
+    "replacement_mode": {"enum": ["full", "scoped"]},
+    "patient_scope": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 64},
+      "uniqueItems": true
+    },
+    "synthetic": {"const": true},
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "seed", "arguments", "config_sha256", "simulation_end_date"],
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "seed": {"type": "integer"},
+        "clinician_seed": {"type": "integer"},
+        "arguments": {"type": "array", "items": {"type": "string"}},
+        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "simulation_end_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "requested_population": {"type": "integer", "minimum": 1},
+        "location": {"type": "string"}
+      }
+    },
+    "source_contract_version": {"type": "string"},
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patients", "encounters", "conditions", "medications", "observations", "organizations"],
+      "patternProperties": {
+        "^(patients|encounters|conditions|medications|observations|organizations)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["filename", "sha256", "records"],
+          "properties": {
+            "filename": {"type": "string", "pattern": "^[a-z_]+\\.csv$"},
+            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "records": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "expected_quarantine": {
+      "description": "Rejection fixtures only: the exact quarantine records this batch must produce.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "record_number", "reason"],
+        "properties": {
+          "file": {"type": "string"},
+          "record_number": {"type": "integer", "minimum": 1},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "notes": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"replacement_mode": {"const": "scoped"}}},
+      "then": {"required": ["patient_scope"], "properties": {"patient_scope": {"minItems": 1}}},
+      "else": {"not": {"required": ["patient_scope"]}}
+    }
+  ]
+}

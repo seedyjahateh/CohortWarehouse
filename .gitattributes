@@ -1,0 +1,7 @@
+* text=auto eol=lf
+# Fixture bytes are hashed in manifests: never let Git rewrite line endings.
+# (Later lines override earlier ones.)
+tests/fixtures/** -text
+sql/omop/*.sql -text
+*.pbix binary
+*.png binary

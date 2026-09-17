@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cohortwarehouse"
+version = "0.1.0"
+description = "Synthetic EHR warehouse: Synthea CSV -> PostgreSQL -> dbt star schema + scoped OMOP 5.4 mart -> Power BI"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+    "psycopg[binary]==3.3.5",
+    "PyYAML==6.0.3",
+    "jsonschema==4.26.0",
+]
+
+[project.optional-dependencies]
+dbt = ["dbt-core==1.12.5", "dbt-postgres==1.11.0"]
+dev = ["pytest==9.1.1", "ruff==0.16.8"]
+
+[project.scripts]
+cohortwarehouse = "cohortwarehouse.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cohortwarehouse*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["dbt/target", "dbt/dbt_packages", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = [
+    "S101",  # assert is idiomatic in pytest
+    "S608",  # SQL is built from validated identifiers via psycopg.sql, not user text
+    "S603",  # subprocess calls use fixed argument lists
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+# The fixture builder's bytes are hashed into fixture manifests (generator.config_sha256); style-only edits
+# would churn committed provenance. Its random.Random is a seeded, deterministic row shuffle.
+"scripts/build_fixture.py" = ["E501", "S311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a running PostgreSQL service (CW_PG_* environment)",
+    "dbt: requires dbt-postgres and a running PostgreSQL service",
+    "airflow: requires the pinned Airflow runtime",
+]
+addopts = "-ra --strict-markers"

@@ -1,0 +1,30 @@
+# Operational policy (NFR-04, NFR-05, Section 10 retention, Section 8.6 coverage).
+freshness:
+  # scheduled: measure now - latest valid delivery.
+  # frozen_demo: a labelled demo mode; freshness is assessed against the declared
+  #              one-off delivery, and results say "frozen demo" rather than "fresh".
+  mode: frozen_demo
+  warn_after_hours: 26
+  error_after_hours: 48
+schedule:
+  cron: "15 5 * * *"
+  timezone: UTC
+  manifest_due_utc: "05:00"
+  delivery_deadline_utc: "06:00"
+coverage:
+  cohort_codes_min_pct: 100.0
+  category_event_weighted_min_pct: 95.0
+  # Input categories = source files (docs/omop-scope.md explains why observations.csv, which feeds both
+  # MEASUREMENT and OBSERVATION, is assessed as one category).
+  categories: [conditions, medications, observations]
+retention:
+  raw_and_quarantine_days: 30
+  audit_metadata_days: 90
+  keep_releases: [current, previous, report_pinned]
+validation_profiles:
+  fixture:
+    allow_test_vocabulary: true
+    label: "Fixture validation with FICTIONAL test-only vocabulary"
+  release:
+    allow_test_vocabulary: false
+    label: "Release validation with pinned OMOP vocabulary"
