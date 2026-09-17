@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {fetch-depth: 0}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: {python-version: "3.12", cache: pip, cache-dependency-path: "requirements/*.lock"}
       - name: Install pinned dependencies
         run: pip install -r requirements/dbt.lock -r requirements/dev.lock
@@ -44,7 +44,7 @@ jobs:
         run: pytest tests/unit -q --junitxml=artifacts/junit-unit.xml
       - name: Secret scan
         run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.2 detect --source /repo --no-banner --redact -v
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: {name: unit-results, path: artifacts/junit-unit.xml}
 
@@ -54,8 +54,8 @@ jobs:
     timeout-minutes: 30
     needs: static
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: "3.12", cache: pip, cache-dependency-path: "requirements/*.lock"}
       - run: pip install -r requirements/dbt.lock -r requirements/dev.lock
       - name: Generate ephemeral credentials
@@ -89,7 +89,7 @@ jobs:
         run: dbt docs generate --project-dir dbt --profiles-dir dbt --target-path target/docs
       - name: Upload evidence (no raw payloads, no restricted vocabularies)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: warehouse-evidence-fictional-vocabulary
           path: |
@@ -106,8 +106,8 @@ jobs:
     timeout-minutes: 15
     needs: static
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
       - name: Install Airflow with official constraints
         run: |
