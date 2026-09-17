@@ -25,21 +25,35 @@ by_category as (
     group by source_file
 ),
 
+-- Cohort codes are resolved against the loaded vocabulary itself, not against codes that happen to occur in
+-- this revision: a code set member absent from the data is still mapped (or not) by the vocabulary.
+cohort_code_targets as (
+    select
+        cs.code_set_id,
+        cs.source_code,
+        count(t.concept_id) as valid_targets
+    from {{ ref('cohort_code_sets') }} as cs
+    left join {{ source('vocab', 'concept') }} as src
+        on src.vocabulary_id = cs.omop_vocabulary_id and src.concept_code = cs.source_code
+    left join {{ source('vocab', 'concept_relationship') }} as cr
+        on cr.concept_id_1 = src.concept_id and cr.relationship_id = 'Maps to' and cr.invalid_reason is null
+    left join {{ source('vocab', 'concept') }} as t
+        on t.concept_id = case when src.standard_concept = 'S' and src.invalid_reason is null
+                               then src.concept_id else cr.concept_id_2 end
+       and t.standard_concept = 'S' and t.invalid_reason is null
+    group by cs.code_set_id, cs.source_code
+),
+
 cohort_codes as (
     select
         'cohort code sets' as category,
         count(*) as accepted_events,
-        count(*) filter (where m.target_concept_id is not null and m.target_concept_id <> 0) as mapped_events,
+        count(*) filter (where valid_targets > 0) as mapped_events,
         0::bigint as retained_unmapped_events,
         0::bigint as routing_excluded_events,
         count(*) as distinct_codes,
-        count(*) filter (where m.target_concept_id is not null and m.target_concept_id <> 0) as distinct_codes_mapped
-    from {{ ref('cohort_code_sets') }} as cs
-    left join (
-        select source_vocabulary_id, source_code, max(target_concept_id) as target_concept_id
-        from {{ ref('int_concept_map') }} group by 1, 2
-    ) as m
-        on m.source_vocabulary_id = cs.omop_vocabulary_id and m.source_code = cs.source_code
+        count(*) filter (where valid_targets > 0) as distinct_codes_mapped
+    from cohort_code_targets
 )
 
 select

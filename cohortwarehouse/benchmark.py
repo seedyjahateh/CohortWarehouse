@@ -15,6 +15,7 @@ import statistics
 import time
 
 from cohortwarehouse.db import connect, fetch_all_dicts, fetch_one_dict
+from cohortwarehouse.errors import QualityGateError
 from cohortwarehouse.ingest import ingest
 from cohortwarehouse.manifest import load_manifest
 from cohortwarehouse.pipeline import run_pipeline
@@ -46,22 +47,39 @@ def benchmark(*, profile: str = "demo", runs: int = 3, manifest: str | None = No
     measurements = []
     for index in range(runs):
         started = time.perf_counter()
-        result = run_pipeline(batch_id=loaded.batch_id, full_refresh=True, profile="release" if profile == "release"
-                              else None, trigger="benchmark")
-        release = publish(result["run_id"])
-        total = time.perf_counter() - started
+        gate_error = None
+        try:
+            run_pipeline(batch_id=loaded.batch_id, full_refresh=True,
+                         profile="release" if profile == "release" else None, trigger="benchmark")
+        except QualityGateError as exc:
+            # A blocked gate is a measured outcome, not a crash: build timings are still real evidence.
+            gate_error = str(exc)
         with connect("transformer") as conn:
-            run = fetch_one_dict(conn, "select stage_timings, counts from ops.pipeline_run where run_id = %s",
-                                 (result["run_id"],))
-        measurements.append({"run": index + 1, "run_id": result["run_id"], "release_id": release["release_id"],
-                             "end_to_end_seconds": round(total, 1), "publish_seconds": release["seconds"],
-                             "stage_timings": run["stage_timings"]})
-        log.info("benchmark run %d: %.1fs", index + 1, total)
+            run = fetch_one_dict(
+                conn,
+                "select run_id, status, stage_timings, counts from ops.pipeline_run "
+                "where target_batch_id = %s and trigger = 'benchmark' order by started_at desc limit 1",
+                (loaded.batch_id,),
+            )
+        build_seconds = time.perf_counter() - started
+        release = publish(run["run_id"]) if run["status"] == "validated" else None
+        total = time.perf_counter() - started
+        measurements.append({
+            "run": index + 1, "run_id": run["run_id"], "gate_status": run["status"],
+            "gate_blocking_failures": gate_error,
+            "release_id": release["release_id"] if release else None,
+            "build_and_gate_seconds": round(build_seconds, 1),
+            "publish_seconds": release["seconds"] if release else None,
+            "end_to_end_seconds": round(total, 1) if release else None,
+            "stage_timings": run["stage_timings"],
+        })
+        log.info("benchmark run %d: build+gate %.1fs, gate=%s", index + 1, build_seconds, run["status"])
 
     with connect("admin") as conn:
         rows = fetch_all_dicts(conn, "select file_key, parsed_records, accepted_records, quarantined_records "
                                      "from ops.batch_file where batch_id = %s order by file_key", (loaded.batch_id,))
-    totals = [m["end_to_end_seconds"] for m in measurements]
+    builds = [m["build_and_gate_seconds"] for m in measurements]
+    totals = [m["end_to_end_seconds"] for m in measurements if m["end_to_end_seconds"] is not None]
     report = {
         "profile": profile,
         "measured_at_utc": dt.datetime.now(dt.UTC).isoformat(),
@@ -72,9 +90,12 @@ def benchmark(*, profile: str = "demo", runs: int = 3, manifest: str | None = No
                      "accepted_rows_per_second": round(accepted / load_seconds, 1)
                      if ingest_result.outcome == "loaded" and load_seconds else None},
         "runs": measurements,
-        "end_to_end_seconds": {"min": min(totals), "median": statistics.median(totals), "max": max(totals)},
+        "build_and_gate_seconds": {"min": min(builds), "median": statistics.median(builds), "max": max(builds)},
+        "end_to_end_seconds": ({"min": min(totals), "median": statistics.median(totals), "max": max(totals)}
+                               if len(totals) == len(measurements) else None),
         "target_seconds": 20 * 60,
-        "meets_target": max(totals) <= 20 * 60,
+        # NFR-01 includes publication: it is only assessed when every run published.
+        "meets_target": (max(totals) <= 20 * 60) if totals and len(totals) == len(measurements) else None,
     }
     directory = repo_root() / "artifacts" / "benchmark"
     directory.mkdir(parents=True, exist_ok=True)

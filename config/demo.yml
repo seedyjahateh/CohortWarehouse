@@ -6,7 +6,13 @@ generator:
   # Download https://github.com/synthetichealth/synthea/releases/download/v3.3.0/synthea-with-dependencies.jar
   # and record its SHA-256 below after the first verified download.
   jar_path: tools/synthea-with-dependencies.jar
-  jar_sha256: null
+  jar_sha256: 8ba04f7d73abadd5a377e41edf24c5c83935a1cb07c6d982cd5db731ef1cf445
+  # Java runs in a pinned container so no host JDK is required. mode: docker | host
+  runtime:
+    mode: docker
+    image: eclipse-temurin:17.0.16_8-jre-jammy@sha256:e90fd2b084488c0ffdd22610d44c1579e63b585c7fb83489fd815c0dc5b4e1f7
+    max_heap: 3g
+    container_memory: 4g
   seed: 20260915
   clinician_seed: 20260915
   requested_population: 1000

@@ -27,7 +27,9 @@ log = logging.getLogger(__name__)
 
 
 def _config_hash(config: dict) -> str:
-    return hashlib.sha256(json.dumps(config, sort_keys=True, default=str).encode()).hexdigest()
+    # The runtime block (container vs host JDK) does not influence generated content, so it is not hashed.
+    content = {k: v for k, v in config.items() if k != "runtime"}
+    return hashlib.sha256(json.dumps(content, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def synthea_arguments(generator: dict, output_dir: Path) -> list[str]:
@@ -52,9 +54,7 @@ def generate(config_path: str, *, batch_id: str | None = None, delivered_at: str
         raise ConfigurationError(f"Synthea jar not found at {jar}; download the pinned release (see {config_path})")
     if generator.get("jar_sha256") and file_sha256(jar) != generator["jar_sha256"]:
         raise ConfigurationError("Synthea jar checksum does not match the pinned value")
-    java = shutil.which("java")
-    if not java:
-        raise ConfigurationError("java is not on PATH (Synthea needs Java 17+)")
+    runtime = generator.get("runtime") or {"mode": "host"}
 
     end_date = str(generator["simulation_end_date"])
     batch_id = batch_id or f"{config['dataset_id']}-{end_date}-s{generator['seed']}"
@@ -64,10 +64,29 @@ def generate(config_path: str, *, batch_id: str | None = None, delivered_at: str
         raise ConfigurationError(f"{delivery_dir} already exists; batch directories are immutable")
     work_dir.mkdir(parents=True)
 
-    args = synthea_arguments(generator, work_dir)
+    heap = f"-Xmx{runtime.get('max_heap', '3g')}"
+    if runtime["mode"] == "docker":
+        docker = shutil.which("docker")
+        if not docker:
+            raise ConfigurationError("runtime.mode is docker but docker is not on PATH")
+        # Arguments are recorded with the container-internal output path so they are host independent.
+        args = synthea_arguments(generator, Path("/output"))
+        command = [
+            docker, "run", "--rm", "--memory", runtime.get("container_memory", "4g"),
+            "-v", f"{jar.parent.resolve()}:/tools:ro", "-v", f"{work_dir.resolve()}:/output",
+            "-w", "/output", runtime["image"], "java", heap, "-jar", f"/tools/{jar.name}", *args,
+        ]
+    elif runtime["mode"] == "host":
+        java = shutil.which("java")
+        if not java:
+            raise ConfigurationError("java is not on PATH (Synthea needs Java 17+); or set runtime.mode: docker")
+        args = synthea_arguments(generator, work_dir)
+        command = [java, heap, "-jar", str(jar), *args]
+    else:
+        raise ConfigurationError(f"unknown Synthea runtime mode {runtime['mode']!r}")
+
     log.info("running Synthea %s: %s", generator["version"], " ".join(args))
-    completed = subprocess.run([java, "-jar", str(jar), *args], cwd=work_dir, capture_output=True, text=True,
-                               check=False)
+    completed = subprocess.run(command, cwd=work_dir, capture_output=True, text=True, check=False)
     (delivery_dir / "synthea_stdout.log").write_text(completed.stdout + completed.stderr, encoding="utf-8")
     if completed.returncode != 0:
         raise ConfigurationError(f"Synthea exited with {completed.returncode}; see synthea_stdout.log")

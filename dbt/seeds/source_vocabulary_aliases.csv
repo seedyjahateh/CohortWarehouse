@@ -2,6 +2,8 @@ source_file,source_system,omop_vocabulary_id,is_assumed_default,rationale
 conditions,http://snomed.info/sct,SNOMED,false,FHIR system URI emitted by newer Synthea exporters
 conditions,SNOMED-CT,SNOMED,false,Synthea module system label
 conditions,SNOMED,SNOMED,false,Already an OMOP vocabulary id
+conditions,ICD10,ICD10CM,false,"Synthea v3.3.0 labels some condition codes ICD10; they are US ICD-10-CM codes (profiled 2026-09-17, 6 of 943 rows in a 25-person run). not_reviewed"
+conditions,http://hl7.org/fhir/sid/icd-10-cm,ICD10CM,false,FHIR system URI for ICD-10-CM
 conditions,(default),SNOMED,true,MAP-01 table-level default when SYSTEM is absent or blank (Synthea conditions are SNOMED coded)
 medications,(default),RxNorm,true,MAP-01 table-level default: Synthea medications.csv has no SYSTEM column and is RxNorm coded
 observations,(default),LOINC,true,MAP-01 table-level default: Synthea observations.csv has no SYSTEM column and is LOINC coded
