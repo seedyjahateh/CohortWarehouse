@@ -1,0 +1,71 @@
+version: 2
+
+models:
+  - name: stg_ops__selected_revision
+    description: Control row selecting the input revision, as-of date and latest full snapshot for this run.
+    config: {meta: {grain: "exactly one row", owner: analytics-engineering}}
+    data_tests: [exactly_one_row]
+    columns:
+      - {name: run_id, data_tests: [not_null]}
+      - {name: as_of_date, data_tests: [not_null]}
+      - {name: full_batch_id, data_tests: [not_null]}
+
+  - name: stg_ops__scoped_patient_batch
+    description: Effective scoped batch per patient after the latest full snapshot.
+    config: {meta: {grain: "one patient covered by a later scoped batch", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+
+  - name: stg_synthea__patients
+    description: Typed patients of the selected revision. Direct identifiers were never loaded.
+    config: {meta: {grain: "one patient", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+      - {name: birth_date, data_tests: [not_null]}
+      - {name: source_row_fingerprint, description: "sha256-canonical-v1 content fingerprint", data_tests: [not_null]}
+
+  - name: stg_synthea__encounters
+    description: Typed encounters of the selected revision; timestamps normalised to UTC, dates are UTC dates.
+    config: {meta: {grain: "one source encounter", owner: analytics-engineering}}
+    columns:
+      - {name: encounter_id, data_tests: [unique, not_null]}
+      - {name: patient_id, data_tests: [not_null]}
+      - {name: start_at, data_tests: [not_null]}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: start_at, end_column: stop_at}}
+
+  - name: stg_synthea__conditions
+    description: Typed condition records of the selected revision (identical records preserved).
+    config: {meta: {grain: "one source condition record", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [not_null]}
+      - {name: start_date, data_tests: [not_null]}
+      - {name: source_code, data_tests: [not_null]}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: start_date, end_column: stop_date}}
+
+  - name: stg_synthea__medications
+    description: Typed medication records of the selected revision.
+    config: {meta: {grain: "one source medication record", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [not_null]}
+      - {name: start_at, data_tests: [not_null]}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: start_at, end_column: stop_at}}
+
+  - name: stg_synthea__observations
+    description: >
+      Typed observation records. value_parse_status distinguishes missing, invalid, numeric and text so a
+      missing or malformed value can never become zero (STG-02).
+    config: {meta: {grain: "one source observation record", owner: analytics-engineering}}
+    columns:
+      - {name: observed_at, data_tests: [not_null]}
+      - name: value_parse_status
+        data_tests:
+          - accepted_values: {arguments: {values: [missing, invalid, numeric, text]}}
+
+  - name: stg_synthea__organizations
+    description: Complete organization reference snapshot delivered with the target batch.
+    config: {meta: {grain: "one organization", owner: analytics-engineering}}
+    columns:
+      - {name: organization_id, data_tests: [unique, not_null]}

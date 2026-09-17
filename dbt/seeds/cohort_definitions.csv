@@ -1,0 +1,4 @@
+cohort_id,definition_version,label,short_rule,condition_code_set_id,measurement_code_set_id,encounter_lookback_days,measurement_lookback_days,systolic_threshold_exclusive,min_encounters,effective_from,review_status
+C1,1,Recorded hypertension,"Eligible adult with a condition in HTN_CONDITIONS starting on/before D and not stopped before D",HTN_CONDITIONS,,364,,,1,2026-09-15,not_reviewed
+C2,1,Recorded hypertension with recent systolic above 140,"C1 member whose latest valid systolic (mm[Hg]) in [D-89, D] is strictly greater than 140",HTN_CONDITIONS,SYSTOLIC_BP,364,89,140,1,2026-09-15,not_reviewed
+C3,1,Frequent recorded encounters,"Eligible adult with at least 3 distinct encounters starting in [D-364, D]",,,364,,,3,2026-09-15,not_reviewed

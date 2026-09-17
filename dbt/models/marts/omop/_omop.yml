@@ -1,0 +1,144 @@
+version: 2
+
+# Scoped OMOP CDM 5.4 mart. Column names/types follow the pinned official DDL
+# (tests/assert_omop_columns_match_official_ddl.sql). Populated scope: docs/omop-scope.md.
+
+models:
+  - name: omop_person
+    description: CDM PERSON for the project's OMOP population (people with at least one supported event on/before D).
+    config: {meta: {grain: "one included person", owner: analytics-engineering, pk: person_id, cdm_table: person}}
+    columns:
+      - {name: person_id, data_tests: [unique, not_null]}
+      - {name: gender_concept_id, data_tests: [not_null]}
+      - {name: year_of_birth, data_tests: [not_null]}
+      - {name: race_concept_id, data_tests: [not_null]}
+      - {name: ethnicity_concept_id, data_tests: [not_null]}
+
+  - name: omop_observation_period
+    description: One inferred observation period per included person (not evidence of continuous coverage).
+    config: {meta: {grain: "one included person", owner: analytics-engineering, pk: observation_period_id, cdm_table: observation_period}}
+    columns:
+      - {name: observation_period_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: period_type_concept_id, data_tests: [not_null]}
+    data_tests:
+      - end_not_before_start:
+          arguments: {start_column: observation_period_start_date, end_column: observation_period_end_date}
+
+  - name: omop_visit_occurrence
+    description: CDM VISIT_OCCURRENCE; one per source encounter of an included person.
+    config: {meta: {grain: "one source encounter", owner: analytics-engineering, pk: visit_occurrence_id, cdm_table: visit_occurrence}}
+    columns:
+      - {name: visit_occurrence_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: visit_concept_id, data_tests: [not_null]}
+      - {name: visit_start_date, data_tests: [not_null]}
+      - {name: visit_end_date, data_tests: [not_null]}
+      - {name: visit_type_concept_id, data_tests: [not_null]}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: visit_start_date, end_column: visit_end_date}}
+
+  - name: omop_condition_occurrence
+    description: CDM CONDITION_OCCURRENCE; Condition-domain targets from any input file.
+    config: {meta: {grain: "one source event + target concept", owner: analytics-engineering, pk: condition_occurrence_id, cdm_table: condition_occurrence}}
+    columns:
+      - {name: condition_occurrence_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: condition_concept_id, data_tests: [not_null]}
+      - {name: condition_start_date, data_tests: [not_null]}
+      - {name: condition_type_concept_id, data_tests: [not_null]}
+      - name: visit_occurrence_id
+        data_tests:
+          - relationships: {arguments: {to: ref('omop_visit_occurrence'), field: visit_occurrence_id}}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: condition_start_date, end_column: condition_end_date}}
+
+  - name: omop_drug_exposure
+    description: CDM DRUG_EXPOSURE; missing end date imputed as start date and flagged in cw_event_crosswalk.
+    config: {meta: {grain: "one source event + target concept", owner: analytics-engineering, pk: drug_exposure_id, cdm_table: drug_exposure}}
+    columns:
+      - {name: drug_exposure_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: drug_concept_id, data_tests: [not_null]}
+      - {name: drug_exposure_start_date, data_tests: [not_null]}
+      - {name: drug_exposure_end_date, data_tests: [not_null]}
+      - {name: drug_type_concept_id, data_tests: [not_null]}
+      - name: visit_occurrence_id
+        data_tests:
+          - relationships: {arguments: {to: ref('omop_visit_occurrence'), field: visit_occurrence_id}}
+    data_tests:
+      - end_not_before_start: {arguments: {start_column: drug_exposure_start_date, end_column: drug_exposure_end_date}}
+
+  - name: omop_measurement
+    description: CDM MEASUREMENT; numeric values only when parsed, no unit conversion.
+    config: {meta: {grain: "one source event + target concept", owner: analytics-engineering, pk: measurement_id, cdm_table: measurement}}
+    columns:
+      - {name: measurement_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: measurement_concept_id, data_tests: [not_null]}
+      - {name: measurement_date, data_tests: [not_null]}
+      - {name: measurement_type_concept_id, data_tests: [not_null]}
+      - name: visit_occurrence_id
+        data_tests:
+          - relationships: {arguments: {to: ref('omop_visit_occurrence'), field: visit_occurrence_id}}
+
+  - name: omop_observation
+    description: CDM OBSERVATION; Observation-domain targets from any input file, with Maps-to-value support.
+    config: {meta: {grain: "one source event + target concept", owner: analytics-engineering, pk: observation_id, cdm_table: observation}}
+    columns:
+      - {name: observation_id, data_tests: [unique, not_null]}
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: observation_concept_id, data_tests: [not_null]}
+      - {name: observation_date, data_tests: [not_null]}
+      - {name: observation_type_concept_id, data_tests: [not_null]}
+      - name: visit_occurrence_id
+        data_tests:
+          - relationships: {arguments: {to: ref('omop_visit_occurrence'), field: visit_occurrence_id}}
+
+  - name: omop_death
+    description: CDM DEATH; supplied death dates on/before D, no invented cause.
+    config: {meta: {grain: "at most one per included person", owner: analytics-engineering, pk: person_id, cdm_table: death}}
+    columns:
+      - name: person_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships: {arguments: {to: ref('omop_person'), field: person_id}}
+      - {name: death_date, data_tests: [not_null]}
+
+  - name: omop_cdm_source
+    description: CDM_SOURCE provenance row (source, ETL version, CDM and vocabulary versions).
+    config: {meta: {grain: "exactly one row", owner: analytics-engineering, cdm_table: cdm_source}}
+    data_tests: [exactly_one_row]
+    columns:
+      - {name: cdm_version_concept_id, data_tests: [not_null]}
+      - {name: vocabulary_version, data_tests: [not_null]}
+
+  - name: cw_event_crosswalk
+    description: NOT a CDM table. Source event to OMOP row crosswalk with mapping decision and imputation flags.
+    config: {meta: {grain: "one OMOP row for an included person", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [destination_table, omop_row_id]}}
+
+  - name: cw_exclusion_ledger
+    description: NOT a CDM table. Published exclusion ledger for source-to-target reconciliation.
+    config: {meta: {grain: "one source record or person + reason", owner: analytics-engineering}}

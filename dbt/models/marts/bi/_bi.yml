@@ -1,0 +1,74 @@
+version: 2
+
+# Power BI imports ONE immutable bi_rNNNN release schema containing exactly these tables.
+# Relationships (single direction): bi_patient_snapshot 1-* bi_cohort_membership, bi_patient_snapshot 1-*
+# bi_cohort_month, bi_cohort_definition 1-* bi_cohort_membership / bi_cohort_month, bi_month 1-* bi_cohort_month.
+
+models:
+  - name: bi_patient_snapshot
+    description: Eligible patients at D (common denominator). Demographics for slicers; no direct identifiers.
+    config: {meta: {grain: "one eligible patient at D", owner: analytics-engineering, pk: patient_key}}
+    columns:
+      - {name: patient_key, data_tests: [unique, not_null]}
+      - {name: patient_pseudo_id, data_tests: [unique, not_null]}
+      - {name: age_at_as_of, description: Completed years at D (PostgreSQL age())., data_tests: [not_null]}
+      - {name: has_valid_recent_systolic, description: "Numeric, approved-unit systolic in [D-89, D].", data_tests: [not_null]}
+      - {name: systolic_tie_flag, description: True when several valid values share the latest instant.}
+
+  - name: bi_cohort_definition
+    description: Cohort definition versions with explicit windows, threshold and code lists.
+    config: {meta: {grain: "one cohort definition version", owner: analytics-engineering, pk: cohort_id}}
+    columns:
+      - {name: cohort_id, data_tests: [unique, not_null]}
+
+  - name: bi_cohort_membership
+    description: Cohort memberships with qualifying evidence. Clinical rules live here, not in DAX.
+    config: {meta: {grain: "one cohort definition + patient", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [cohort_id, patient_key]}}
+    columns:
+      - name: patient_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('bi_patient_snapshot'), field: patient_key}}
+      - name: cohort_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('bi_cohort_definition'), field: cohort_id}}
+
+  - name: bi_cohort_month
+    description: Distinct encounters per cohort member per encounter-start month within the 365-day window.
+    config: {meta: {grain: "one cohort + patient + encounter month", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [cohort_id, patient_key, month_key]}}
+    columns:
+      - name: month_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('bi_month'), field: month_key}}
+      - {name: encounter_count, data_tests: [not_null, not_negative]}
+
+  - name: bi_month
+    description: Months of the encounter window; filters bi_cohort_month only.
+    config: {meta: {grain: "one calendar month", owner: analytics-engineering, pk: month_key}}
+    columns:
+      - {name: month_key, data_tests: [unique, not_null]}
+
+  - name: bi_member_evidence
+    description: Drill-through evidence per member (pseudonymous id, dates, codes, mapped concepts).
+    config: {meta: {grain: "one cohort + member + evidence event", owner: analytics-engineering}}
+
+  - name: bi_mapping_coverage
+    description: MAP-06 event-weighted and distinct-code coverage with denominators and exceptions.
+    config: {meta: {grain: "one input category (+ cohort code sets)", owner: analytics-engineering}}
+    columns:
+      - {name: category, data_tests: [unique, not_null]}
+
+  - name: bi_release_status
+    description: Release identity, source as-of/delivery, publication time, vocabulary and quality summary.
+    config: {meta: {grain: "exactly one row", owner: analytics-engineering}}
+    data_tests: [exactly_one_row]
+
+  - name: bi_data_profile
+    description: Achilles-style descriptive profile organised by DQD categories (not an Achilles/DQD run).
+    config: {meta: {grain: "one metric + dimension value", owner: analytics-engineering}}

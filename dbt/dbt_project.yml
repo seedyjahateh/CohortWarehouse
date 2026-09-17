@@ -1,0 +1,64 @@
+name: cohortwarehouse
+version: "0.1.0"
+config-version: 2
+require-dbt-version: [">=1.10.0", "<2.0.0"]
+profile: cohortwarehouse
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+snapshot-paths: ["snapshots"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+# Run context is passed as environment variables (CW_RUN_ID, CW_GIT_SHA, CW_INJECT_FAILURE_MODEL) by
+# `python -m cohortwarehouse run`, not --vars, so partial parsing survives between runs.
+vars:
+  coverage_min_pct: 95.0
+
+flags:
+  send_anonymous_usage_stats: false
+  use_colors: false
+
+models:
+  cohortwarehouse:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +schema: stg
+      +materialized: view
+      +meta: {owner: analytics-engineering, layer: staging}
+    intermediate:
+      +schema: int
+      +materialized: table
+      +post-hook: ["{{ analyze_relation() }}"]
+      +meta: {owner: analytics-engineering, layer: intermediate}
+    marts:
+      +post-hook: ["{{ analyze_relation() }}"]
+      star:
+        +schema: work_star
+        +materialized: table
+        +meta: {owner: analytics-engineering, layer: star}
+      omop:
+        +schema: work_omop
+        +materialized: table
+        +meta: {owner: analytics-engineering, layer: omop}
+      bi:
+        +schema: work_bi
+        +materialized: table
+        +meta: {owner: analytics-engineering, layer: bi}
+
+seeds:
+  cohortwarehouse:
+    +schema: seeds
+    +quote_columns: false
+    +post-hook: ["analyze {{ this }}"]
+
+data_tests:
+  cohortwarehouse:
+    +severity: error
+    +store_failures: true
+    +schema: work_audit

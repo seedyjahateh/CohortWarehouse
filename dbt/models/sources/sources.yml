@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Immutable source batches loaded by the Python COPY loader. Every clinical value is original text;
+      `_batch_id` + `_record_number` locate the source CSV record. Direct identifiers are never loaded.
+    schema: raw
+    meta: {owner: analytics-engineering, contains_restricted_payload: true}
+    tables:
+      - name: patients
+        description: One row per accepted patients.csv record per batch.
+        columns:
+          - {name: _batch_id, data_tests: [not_null]}
+          - {name: id, data_tests: [not_null]}
+      - name: encounters
+        description: One row per accepted encounters.csv record per batch.
+      - name: conditions
+        description: One row per accepted conditions.csv record per batch (no native event id).
+      - name: medications
+        description: One row per accepted medications.csv record per batch (no native event id).
+      - name: observations
+        description: One row per accepted observations.csv record per batch (no native event id).
+      - name: organizations
+        description: Complete organization reference snapshot per batch.
+
+  - name: ops
+    description: Operational metadata owned by the loader, pipeline and publisher.
+    schema: ops
+    meta: {owner: analytics-engineering}
+    tables:
+      - name: batch
+        description: >
+          One row per accepted delivery manifest. Source freshness is measured on `delivered_at`
+          (NFR-05), never on clinical event dates; replaying an old batch cannot reset freshness.
+        loaded_at_field: delivered_at
+        config:
+          freshness:
+            warn_after: {count: 26, period: hour}
+            error_after: {count: 48, period: hour}
+      - name: batch_file
+        description: Per-file reconciliation (parsed = accepted + quarantined).
+      - name: batch_scope_patient
+        description: Declared patient scope of scoped replacement batches.
+      - name: quarantine
+        description: Rejected source records with reason and locator.
+      - name: pipeline_run
+        description: One row per pipeline run; selects the input revision and as-of date for dbt.
+      - name: entity_key_map
+        description: Persistent surrogate-key registry (Section 8.4).
+      - name: person_state_built
+        description: Person fingerprints of the last successfully built candidate.
+      - name: pending_person
+        description: People whose slices an unfinished attempt may have rewritten.
+      - name: build_state
+        description: Last successful candidate build per dataset.
+      - name: vocabulary_release
+        description: Loaded vocabulary packages and their provenance.
+
+  - name: vocab
+    description: OMOP vocabulary tables (official CDM 5.4 DDL). Loaded by `load-vocabulary`.
+    schema: vocab
+    meta: {owner: analytics-engineering}
+    tables:
+      - name: concept
+      - name: concept_relationship
+      - name: vocabulary
+      - name: domain
+      - name: concept_class
+      - name: relationship

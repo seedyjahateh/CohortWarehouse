@@ -1,0 +1,3 @@
+role,omop_vocabulary_id,omop_concept_code,expected_domain_id,athena_reference_concept_id,meaning
+ehr_record_type,Type Concept,OMOP4976890,Type Concept,32817,EHR: provenance of every clinical row and inferred observation period
+cdm_version,CDM,CDM v5.4,Metadata,756265,OMOP CDM Version 5.4 for CDM_SOURCE

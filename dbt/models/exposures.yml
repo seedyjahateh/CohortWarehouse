@@ -1,0 +1,42 @@
+version: 2
+
+exposures:
+  - name: cohort_discovery_report
+    label: Cohort discovery (Power BI Desktop)
+    type: dashboard
+    maturity: medium
+    url: bi/CohortWarehouse.pbix
+    description: >
+      Power BI Desktop report (Import mode) over one immutable bi_rNNNN release schema selected by the
+      ReleaseSchema parameter. Pages: Cohort discovery, Cohort evidence and utilization, Data trust.
+      Synthetic data - demonstration only. Measures: bi/measures.dax; contracts: docs/metric-contracts.md.
+    owner:
+      name: Analytics engineering (project owner)
+    depends_on:
+      - ref('bi_patient_snapshot')
+      - ref('bi_cohort_definition')
+      - ref('bi_cohort_membership')
+      - ref('bi_cohort_month')
+      - ref('bi_month')
+      - ref('bi_member_evidence')
+      - ref('bi_mapping_coverage')
+      - ref('bi_release_status')
+      - ref('bi_data_profile')
+
+  - name: omop_research_mart
+    label: Scoped OMOP CDM 5.4 mart
+    type: application
+    maturity: low
+    description: Published omop_rNNNN schema for research-style SQL; scope and limitations in docs/omop-scope.md.
+    owner:
+      name: Analytics engineering (project owner)
+    depends_on:
+      - ref('omop_person')
+      - ref('omop_observation_period')
+      - ref('omop_visit_occurrence')
+      - ref('omop_condition_occurrence')
+      - ref('omop_drug_exposure')
+      - ref('omop_measurement')
+      - ref('omop_observation')
+      - ref('omop_death')
+      - ref('omop_cdm_source')

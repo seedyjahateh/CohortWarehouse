@@ -1,0 +1,164 @@
+version: 2
+
+models:
+  - name: int_person_fingerprint
+    description: Per-person fingerprint of the clinical row multiset and patient attributes (Section 9.2.2).
+    config: {meta: {grain: "one referenced patient id", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+
+  - name: int_changed_person
+    description: People whose slices are rebuilt this run (new, changed, removed, pending retry, or full refresh).
+    config: {meta: {grain: "one changed patient id", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+      - name: change_type
+        data_tests:
+          - accepted_values: {arguments: {values: [new, changed, removed, pending_retry, full_refresh]}}
+
+  - name: int_changed_person_keys
+    description: Changed people with stable patient keys; drives slice deletes/inserts.
+    config: {meta: {grain: "one changed person with a registered key", owner: analytics-engineering}}
+    columns:
+      - {name: patient_key, data_tests: [unique, not_null]}
+
+  - name: int_key_registry
+    description: Summary of the persistent key registry after this run's registrations (pre-hooks do the work).
+    config: {meta: {grain: "one entity type", owner: analytics-engineering}}
+    columns:
+      - {name: entity_type, data_tests: [unique, not_null]}
+
+  - name: int_condition_events
+    description: Condition records with content identity (fingerprint + occurrence ordinal) and vocabulary alias.
+    config: {meta: {grain: "one source condition record", owner: analytics-engineering}}
+  - name: int_medication_events
+    description: Medication records with content identity and vocabulary alias.
+    config: {meta: {grain: "one source medication record", owner: analytics-engineering}}
+  - name: int_observation_events
+    description: Observation records with content identity, vocabulary alias and unit policy.
+    config: {meta: {grain: "one source observation record", owner: analytics-engineering}}
+  - name: int_clinical_events
+    description: Union of clinical events in one shape for mapping and routing.
+    config: {meta: {grain: "one source clinical event", owner: analytics-engineering}}
+
+  - name: int_patients
+    description: Patients with stable keys and pseudonymous ids.
+    config: {meta: {grain: "one patient", owner: analytics-engineering}}
+    columns:
+      - {name: patient_key, data_tests: [unique, not_null]}
+      - {name: patient_pseudo_id, data_tests: [unique, not_null]}
+
+  - name: int_organizations
+    description: Organizations with stable keys.
+    config: {meta: {grain: "one organization", owner: analytics-engineering}}
+    columns:
+      - {name: organization_key, data_tests: [unique, not_null]}
+
+  - name: int_encounters
+    description: Encounters of existing patients with stable keys and resolved organization/type links.
+    config: {meta: {grain: "one source encounter", owner: analytics-engineering}}
+    columns:
+      - {name: encounter_key, data_tests: [unique, not_null]}
+      - {name: patient_key, data_tests: [not_null]}
+      - name: encounter_class_accepted
+        description: False when the class is not in the reviewed encounter_classes seed (blocking).
+        data_tests:
+          - accepted_values: {arguments: {values: [true]}}
+
+  - name: int_conditions
+    description: Keyed condition occurrences with encounter-link status.
+    config: {meta: {grain: "one preserved source condition occurrence", owner: analytics-engineering}}
+    columns:
+      - {name: event_key, data_tests: [unique, not_null]}
+      - {name: patient_key, data_tests: [not_null]}
+      - {name: clinical_code_key, data_tests: [not_null]}
+      - {name: source_event_key, data_tests: [unique, not_null]}
+      - name: encounter_link_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, unresolved, linked]}}
+
+  - name: int_medications
+    description: Keyed medication records with encounter-link status.
+    config: {meta: {grain: "one source medication record", owner: analytics-engineering}}
+    columns:
+      - {name: event_key, data_tests: [unique, not_null]}
+      - {name: patient_key, data_tests: [not_null]}
+      - {name: clinical_code_key, data_tests: [not_null]}
+      - {name: source_event_key, data_tests: [unique, not_null]}
+      - name: encounter_link_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, unresolved, linked]}}
+
+  - name: int_observations
+    description: Keyed observation records with encounter-link status and unit key.
+    config: {meta: {grain: "one source observation record", owner: analytics-engineering}}
+    columns:
+      - {name: event_key, data_tests: [unique, not_null]}
+      - {name: patient_key, data_tests: [not_null]}
+      - {name: clinical_code_key, data_tests: [not_null]}
+      - {name: source_event_key, data_tests: [unique, not_null]}
+      - name: encounter_link_status
+        data_tests:
+          - accepted_values: {arguments: {values: [absent, unresolved, linked]}}
+
+  - name: int_clinical_codes
+    description: Distinct source codes with keys and mapping summary.
+    config: {meta: {grain: "one source vocabulary + code", owner: analytics-engineering}}
+    columns:
+      - {name: clinical_code_key, data_tests: [unique, not_null]}
+
+  - name: int_units
+    description: Distinct supplied units with policy and unit concept.
+    config: {meta: {grain: "one supplied unit string", owner: analytics-engineering}}
+    columns:
+      - {name: unit_key, data_tests: [unique, not_null]}
+
+  - name: int_concept_map
+    description: Source code to standard concept mapping (MAP-02) with fan-out ordinals and Maps-to-value.
+    config: {meta: {grain: "one source vocabulary + code + mapping ordinal", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [source_vocabulary_id, source_code, mapping_ordinal]}}
+    columns:
+      - name: mapping_status
+        data_tests:
+          - accepted_values:
+              arguments: {values: [standard_source, maps_to, source_concept_not_found, no_valid_standard_target]}
+
+  - name: int_omop_event_candidates
+    description: Clinical events fanned out by mapping and routed by target domain (MAP-03/04).
+    config: {meta: {grain: "one source event + mapping ordinal", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [source_event_key, mapping_ordinal]}}
+    columns:
+      - {name: omop_event_natural_key, data_tests: [unique, not_null]}
+
+  - name: int_omop_persons
+    description: OMOP population decision and inferred observation period per patient.
+    config: {meta: {grain: "one patient", owner: analytics-engineering}}
+    columns:
+      - {name: patient_key, data_tests: [unique, not_null]}
+    data_tests:
+      - end_not_before_start:
+          arguments: {start_column: observation_period_start_date, end_column: observation_period_end_date}
+
+  - name: int_omop_events
+    description: Routed OMOP clinical rows with registry ids and visit links.
+    config: {meta: {grain: "one source event + destination + target concept + ordinal", owner: analytics-engineering}}
+    columns:
+      - {name: omop_event_id, data_tests: [unique, not_null]}
+      - {name: person_id, data_tests: [not_null]}
+
+  - name: int_omop_reference_concepts
+    description: Seed-declared fixed, demographic and visit concepts resolved against the loaded vocabulary.
+    config: {meta: {grain: "one concept role + source value", owner: analytics-engineering}}
+    data_tests:
+      - unique_combination: {arguments: {columns: [concept_role, source_value]}}
+
+  - name: int_exclusion_ledger
+    description: Every excluded or informationally-flagged source record or person, with reason (STG-05).
+    config: {meta: {grain: "one source record or person + reason", owner: analytics-engineering}}
+    columns:
+      - name: is_blocking
+        description: True only for wrong-person visit links, which must never reach a release.
+        data_tests:
+          - accepted_values: {arguments: {values: [false]}}

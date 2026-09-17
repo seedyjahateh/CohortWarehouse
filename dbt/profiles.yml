@@ -1,0 +1,16 @@
+# No secrets here: every value comes from the environment (NFR-11).
+cohortwarehouse:
+  target: transformer
+  outputs:
+    transformer:
+      type: postgres
+      host: "{{ env_var('CW_PG_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('CW_PG_PORT', '5433') | as_number }}"
+      dbname: "{{ env_var('CW_PG_DATABASE', 'cohortwarehouse') }}"
+      user: "{{ env_var('CW_TRANSFORMER_USER', 'cw_transformer') }}"
+      password: "{{ env_var('CW_TRANSFORMER_PASSWORD') }}"
+      role: cwr_transformer
+      schema: work_audit
+      threads: "{{ env_var('CW_DBT_THREADS', '4') | as_number }}"
+      connect_timeout: 10
+      keepalives_idle: 30

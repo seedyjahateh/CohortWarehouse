@@ -1,0 +1,11 @@
+source_class,reporting_label,reporting_group,omop_visit_vocabulary_id,omop_visit_concept_code,review_status,rationale
+ambulatory,Ambulatory,Outpatient,Visit,OP,not_reviewed,Ambulatory encounters are outpatient visits
+outpatient,Outpatient,Outpatient,Visit,OP,not_reviewed,Direct correspondence
+wellness,Wellness,Outpatient,Visit,OP,not_reviewed,Scheduled preventive outpatient visit
+urgentcare,Urgent care,Outpatient,Visit,OP,not_reviewed,P0 does not distinguish urgent care facilities; recorded as outpatient pending review
+emergency,Emergency,Emergency,Visit,ER,not_reviewed,Direct correspondence
+inpatient,Inpatient,Inpatient,Visit,IP,not_reviewed,Direct correspondence
+home,Home,Outpatient,,,not_reviewed,No reviewed visit concept in P0: visit_concept_id 0 (unmapped)
+virtual,Virtual,Outpatient,,,not_reviewed,No reviewed visit concept in P0: visit_concept_id 0 (unmapped)
+hospice,Hospice,Other,,,not_reviewed,No reviewed visit concept in P0: visit_concept_id 0 (unmapped)
+snf,Skilled nursing,Other,,,not_reviewed,No reviewed visit concept in P0: visit_concept_id 0 (unmapped)

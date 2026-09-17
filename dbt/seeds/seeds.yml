@@ -1,0 +1,65 @@
+version: 2
+
+seeds:
+  - name: source_vocabulary_aliases
+    description: MAP-01 normalisation of source code-system labels to OMOP vocabulary ids.
+    config:
+      column_types: {source_file: text, source_system: text, omop_vocabulary_id: text, is_assumed_default: boolean, rationale: text}
+    columns:
+      - name: source_system
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination: {arguments: {columns: [source_file, source_system]}}
+
+  - name: encounter_classes
+    description: Reviewed encounter-class reporting labels and OMOP Visit mappings (versioned seed).
+    config:
+      column_types: {source_class: text, reporting_label: text, reporting_group: text, omop_visit_vocabulary_id: text, omop_visit_concept_code: text, review_status: text, rationale: text}
+    columns:
+      - name: source_class
+        data_tests: [unique, not_null]
+
+  - name: demographic_concepts
+    description: Explicit recorded-demographic to OMOP concept mappings. Blank code means concept 0.
+    config:
+      column_types: {dimension: text, source_value: text, omop_vocabulary_id: text, omop_concept_code: text, review_status: text, rationale: text}
+    data_tests:
+      - unique_combination: {arguments: {columns: [dimension, source_value]}}
+
+  - name: omop_fixed_concepts
+    description: Provenance/type and metadata concepts resolved by code from the pinned vocabulary, never hard-coded ids.
+    config:
+      column_types: {role: text, omop_vocabulary_id: text, omop_concept_code: text, expected_domain_id: text, athena_reference_concept_id: integer, meaning: text}
+    columns:
+      - name: role
+        data_tests: [unique, not_null]
+
+  - name: unit_policy
+    description: MAP-05 versioned unit whitelist. No numeric conversions are performed.
+    config:
+      column_types: {source_unit: text, canonical_unit: text, ucum_code: text, approved_for_systolic: boolean, policy_version: integer, rationale: text}
+    columns:
+      - name: source_unit
+        data_tests: [unique, not_null]
+
+  - name: unmapped_routing
+    description: MAP-04 destinations for events without a valid standard mapping, when defensible from the source contract.
+    config:
+      column_types: {source_file: text, source_category: text, destination_table: text, rationale: text}
+    data_tests:
+      - unique_combination: {arguments: {columns: [source_file, source_category]}}
+
+  - name: cohort_definitions
+    description: Fixed, versioned cohort definitions (Section 5.4). Thresholds live here, not in SQL or DAX.
+    config:
+      column_types: {cohort_id: text, definition_version: integer, label: text, short_rule: text, condition_code_set_id: text, measurement_code_set_id: text, encounter_lookback_days: integer, measurement_lookback_days: integer, systolic_threshold_exclusive: numeric, min_encounters: integer, effective_from: date, review_status: text}
+    columns:
+      - name: cohort_id
+        data_tests: [unique, not_null]
+
+  - name: cohort_code_sets
+    description: Explicit source code sets. No descendant expansion in P0.
+    config:
+      column_types: {code_set_id: text, code_set_version: integer, omop_vocabulary_id: text, source_code: text, description: text, added_on: date, review_status: text}
+    data_tests:
+      - unique_combination: {arguments: {columns: [code_set_id, omop_vocabulary_id, source_code]}}

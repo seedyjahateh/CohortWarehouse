@@ -1,0 +1,4 @@
+code_set_id,code_set_version,omop_vocabulary_id,source_code,description,added_on,review_status
+HTN_CONDITIONS,1,SNOMED,59621000,Essential hypertension (disorder),2026-09-15,not_reviewed
+HTN_CONDITIONS,1,SNOMED,38341003,"Hypertensive disorder, systemic arterial (disorder)",2026-09-15,not_reviewed
+SYSTOLIC_BP,1,LOINC,8480-6,Systolic blood pressure,2026-09-15,not_reviewed

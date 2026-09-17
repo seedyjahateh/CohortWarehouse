@@ -1,0 +1,5 @@
+source_file,source_category,destination_table,rationale
+conditions,(any),condition_occurrence,MAP-04: conditions.csv is a diagnosis/finding list; unmapped rows stay conditions with concept 0
+medications,(any),drug_exposure,MAP-04: medications.csv records drug orders
+observations,vital-signs,measurement,MAP-04: vital signs are measurements by source contract
+observations,laboratory,measurement,MAP-04: laboratory results are measurements by source contract

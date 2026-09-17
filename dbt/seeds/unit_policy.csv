@@ -1,0 +1,7 @@
+source_unit,canonical_unit,ucum_code,approved_for_systolic,policy_version,rationale
+mm[Hg],mm[Hg],mm[Hg],true,1,Canonical UCUM unit for blood pressure
+mmHg,mm[Hg],mm[Hg],true,1,Textual alias of the identical unit; no numeric conversion
+kg,kg,kg,false,1,UCUM
+%,%,%,false,1,UCUM
+cm[H2O],cm[H2O],cm[H2O],false,1,UCUM; pressure unit but NOT approved for systolic blood pressure (no undocumented conversion)
+{score},{score},{score},false,1,UCUM annotation

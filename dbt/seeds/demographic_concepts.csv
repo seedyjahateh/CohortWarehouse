@@ -1,0 +1,11 @@
+dimension,source_value,omop_vocabulary_id,omop_concept_code,review_status,rationale
+gender,M,Gender,M,not_reviewed,Synthea GENDER is recorded sex M/F
+gender,F,Gender,F,not_reviewed,Synthea GENDER is recorded sex M/F
+race,white,Race,5,not_reviewed,OMB category
+race,black,Race,3,not_reviewed,OMB category
+race,asian,Race,2,not_reviewed,OMB category
+race,native,Race,1,not_reviewed,American Indian or Alaska Native
+race,hawaiian,Race,4,not_reviewed,Native Hawaiian or Other Pacific Islander
+race,other,,,not_reviewed,No standard concept: race_concept_id 0 with source value retained
+ethnicity,hispanic,Ethnicity,Hispanic,not_reviewed,Direct correspondence
+ethnicity,nonhispanic,Ethnicity,Not Hispanic,not_reviewed,Direct correspondence

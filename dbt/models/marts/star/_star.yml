@@ -1,0 +1,149 @@
+version: 2
+
+models:
+  - name: dim_patient
+    description: Patient dimension (Type 1). Birth date is retained only in this protected analytical layer.
+    config: {meta: {grain: "one patient", owner: analytics-engineering, scd: type_1, pk: patient_key}}
+    columns:
+      - {name: patient_key, description: Stable integer key from ops.entity_key_map., data_tests: [unique, not_null]}
+      - {name: patient_pseudo_id, description: Pseudonymous id (truncated SHA-256 of dataset + source id)., data_tests: [unique, not_null]}
+
+  - name: dim_date
+    description: Calendar dimension (Type 0) covering every referenced date and D; key 0 = no date supplied.
+    config: {meta: {grain: "one calendar date", owner: analytics-engineering, scd: type_0, pk: date_key}}
+    columns:
+      - {name: date_key, description: "YYYYMMDD integer; 0 = Unknown/not supplied", data_tests: [unique, not_null]}
+
+  - name: dim_organization
+    description: Organization dimension (Type 1); key 0 = Unknown / not supplied.
+    config: {meta: {grain: "one organization", owner: analytics-engineering, scd: type_1, pk: organization_key}}
+    columns:
+      - {name: organization_key, data_tests: [unique, not_null]}
+
+  - name: dim_encounter_type
+    description: Encounter class dimension from the versioned seed; key 0 = Unknown.
+    config: {meta: {grain: "one encounter class", owner: analytics-engineering, scd: type_1, pk: encounter_type_key}}
+    columns:
+      - {name: encounter_type_key, data_tests: [unique, not_null]}
+
+  - name: dim_clinical_code
+    description: Source code dimension with mapping status against the pinned vocabulary.
+    config: {meta: {grain: "one source vocabulary + code", owner: analytics-engineering, scd: type_1, pk: clinical_code_key}}
+    columns:
+      - {name: clinical_code_key, data_tests: [unique, not_null]}
+
+  - name: dim_unit
+    description: Unit dimension under the versioned unit policy; key 0 = no unit supplied.
+    config: {meta: {grain: "one supplied unit string", owner: analytics-engineering, scd: type_1, pk: unit_key}}
+    columns:
+      - {name: unit_key, data_tests: [unique, not_null]}
+
+  - name: fct_encounter
+    description: >
+      One row per source encounter. Count distinct encounter_key for utilisation; source costs are synthetic
+      attributes and base cost is never added to total claim cost.
+    config: {meta: {grain: "one source encounter", owner: analytics-engineering, pk: encounter_key}}
+    columns:
+      - {name: encounter_key, data_tests: [unique, not_null]}
+      - name: patient_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_patient'), field: patient_key}}
+      - name: start_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: end_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: organization_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_organization'), field: organization_key}}
+      - name: encounter_type_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_encounter_type'), field: encounter_type_key}}
+      - {name: encounter_count, data_tests: [not_null]}
+
+  - name: fct_condition
+    description: One row per preserved source condition occurrence. Event counts are not patient counts.
+    config: {meta: {grain: "one preserved source condition occurrence", owner: analytics-engineering, pk: condition_key}}
+    columns:
+      - {name: condition_key, data_tests: [unique, not_null]}
+      - name: patient_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_patient'), field: patient_key}}
+      - name: start_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: end_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: clinical_code_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_clinical_code'), field: clinical_code_key}}
+      - name: encounter_key
+        description: Nullable tracing link; null when no encounter was supplied or it could not be resolved.
+        data_tests:
+          - relationships: {arguments: {to: ref('fct_encounter'), field: encounter_key}}
+      - {name: source_event_key, data_tests: [unique, not_null]}
+
+  - name: fct_medication
+    description: One row per source medication record. No adherence or fill inference.
+    config: {meta: {grain: "one source medication record", owner: analytics-engineering, pk: medication_key}}
+    columns:
+      - {name: medication_key, data_tests: [unique, not_null]}
+      - name: patient_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_patient'), field: patient_key}}
+      - name: start_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: end_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: clinical_code_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_clinical_code'), field: clinical_code_key}}
+      - name: encounter_key
+        data_tests:
+          - relationships: {arguments: {to: ref('fct_encounter'), field: encounter_key}}
+      - {name: source_event_key, data_tests: [unique, not_null]}
+
+  - name: fct_observation
+    description: >
+      One row per source observation, including repeated same-time values. Never sum value_as_number across
+      codes or units.
+    config: {meta: {grain: "one source observation record", owner: analytics-engineering, pk: observation_key}}
+    columns:
+      - {name: observation_key, data_tests: [unique, not_null]}
+      - name: patient_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_patient'), field: patient_key}}
+      - name: observation_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: clinical_code_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_clinical_code'), field: clinical_code_key}}
+      - name: unit_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_unit'), field: unit_key}}
+      - name: encounter_key
+        data_tests:
+          - relationships: {arguments: {to: ref('fct_encounter'), field: encounter_key}}
+      - {name: source_event_key, data_tests: [unique, not_null]}
