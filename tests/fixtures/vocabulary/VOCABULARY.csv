@@ -1,0 +1,12 @@
+vocabulary_id	vocabulary_name	vocabulary_reference	vocabulary_version	vocabulary_concept_id
+None	Fictional test vocabulary	tests/fixtures/vocabulary	CW-TEST-FICTIONAL-2026.09	2000000001
+SNOMED	SNOMED (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+LOINC	LOINC (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+RxNorm	RxNorm (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+UCUM	UCUM (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+Gender	Gender (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+Race	Race (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+Ethnicity	Ethnicity (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+Visit	Visit (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+Type Concept	Type Concept (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001
+CDM	CDM (fictional test subset)	fictional	CW-TEST-FICTIONAL	2000000001

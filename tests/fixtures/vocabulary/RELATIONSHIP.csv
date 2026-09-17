@@ -1,0 +1,5 @@
+relationship_id	relationship_name	is_hierarchical	defines_ancestry	reverse_relationship_id	relationship_concept_id
+Maps to	Non-standard to Standard map (OMOP)	0	0	Mapped from	2000000001
+Mapped from	Standard to Non-standard map (OMOP)	0	0	Maps to	2000000001
+Maps to value	Non-standard to value map (OMOP)	0	0	Value mapped from	2000000001
+Value mapped from	Value to non-standard map (OMOP)	0	0	Maps to value	2000000001

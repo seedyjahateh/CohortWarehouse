@@ -1,0 +1,3 @@
+FICTIONAL test-only vocabulary for CohortWarehouse CI and fixtures.
+Concept IDs and relationships are invented. Not derived from, and not a substitute for,
+the OHDSI Standardized Vocabularies. Cannot satisfy the release validation profile.

@@ -1,0 +1,83 @@
+// CohortWarehouse Power BI measures (BI-01). Import mode over ONE bi_rNNNN release schema.
+// Contracts (definition, unit, filter behaviour, matching SQL): docs/metric-contracts.md
+// Clinical rules live in dbt (bi_cohort_membership); these measures only aggregate and display.
+// Model relationships (single direction, no bidirectional filters, no fact-to-fact):
+//   bi_patient_snapshot[patient_key]  1 -> * bi_cohort_membership[patient_key]
+//   bi_patient_snapshot[patient_key]  1 -> * bi_cohort_month[patient_key]
+//   bi_cohort_definition[cohort_id]   1 -> * bi_cohort_membership[cohort_id]
+//   bi_cohort_definition[cohort_id]   1 -> * bi_cohort_month[cohort_id]
+//   bi_month[month_key]               1 -> * bi_cohort_month[month_key]
+// Technical keys (patient_key, month_key, *_key) are hidden in report view.
+
+Eligible Patients =
+    COUNTROWS ( bi_patient_snapshot )
+
+Cohort Patients =
+    COALESCE (
+        DISTINCTCOUNT ( bi_cohort_membership[patient_key] ),
+        0
+    )
+
+Cohort Share =
+    DIVIDE ( [Cohort Patients], [Eligible Patients] )
+
+Cohort Encounters =
+    // Guarded: encounter totals are only meaningful for exactly one selected cohort (no double counting).
+    IF (
+        HASONEVALUE ( bi_cohort_definition[cohort_id] ),
+        COALESCE ( SUM ( bi_cohort_month[encounter_count] ), 0 )
+    )
+
+Mean Age in Cohort =
+    VAR Members = VALUES ( bi_cohort_membership[patient_key] )
+    RETURN
+        CALCULATE (
+            AVERAGE ( bi_patient_snapshot[age_at_as_of] ),
+            KEEPFILTERS ( TREATAS ( Members, bi_patient_snapshot[patient_key] ) )
+        )
+
+Cohort Patients Missing Systolic =
+    VAR Members = VALUES ( bi_cohort_membership[patient_key] )
+    RETURN
+        COALESCE (
+            CALCULATE (
+                COUNTROWS ( bi_patient_snapshot ),
+                KEEPFILTERS ( TREATAS ( Members, bi_patient_snapshot[patient_key] ) ),
+                bi_patient_snapshot[has_valid_recent_systolic] = FALSE ()
+            ),
+            0
+        )
+
+Cohort Patients With Missing Systolic Values =
+    // Evidence of a recorded-but-empty value (BI-02), distinct from "no measurement recorded".
+    VAR Members = VALUES ( bi_cohort_membership[patient_key] )
+    RETURN
+        COALESCE (
+            CALCULATE (
+                COUNTROWS ( bi_patient_snapshot ),
+                KEEPFILTERS ( TREATAS ( Members, bi_patient_snapshot[patient_key] ) ),
+                bi_patient_snapshot[recent_systolic_missing_value_count] > 0
+            ),
+            0
+        )
+
+Unmapped Source Events =
+    SUMX ( bi_mapping_coverage, bi_mapping_coverage[retained_unmapped_events] + bi_mapping_coverage[routing_excluded_events] )
+
+Imported Release =
+    // Exactly one release must be present; anything else is surfaced, never hidden.
+    IF (
+        COUNTROWS ( VALUES ( bi_release_status[release_id] ) ) = 1,
+        SELECTEDVALUE ( bi_release_status[release_id] ),
+        "ERROR: mixed or missing release"
+    )
+
+Selected Cohort Label =
+    IF (
+        HASONEVALUE ( bi_cohort_definition[cohort_id] ),
+        SELECTEDVALUE ( bi_cohort_definition[definition_label] ) & " - " & SELECTEDVALUE ( bi_cohort_definition[cohort_label] ),
+        "Select exactly one cohort"
+    )
+
+Empty State Message =
+    IF ( [Cohort Patients] = 0, "No eligible synthetic patients match this cohort and filter combination (count = 0).", BLANK () )

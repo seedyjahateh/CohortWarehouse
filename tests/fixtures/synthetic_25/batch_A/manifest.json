@@ -1,0 +1,67 @@
+{
+  "manifest_version": 1,
+  "dataset_id": "fixture",
+  "batch_id": "fixture-A",
+  "source_revision": 1,
+  "as_of_date": "2026-06-30",
+  "delivered_at": "2026-07-01T04:30:00Z",
+  "delivery_kind": "scheduled",
+  "replacement_mode": "full",
+  "synthetic": true,
+  "generator": {
+    "name": "cohortwarehouse-fixture-builder",
+    "version": "1",
+    "seed": 20260915,
+    "arguments": [
+      "scripts/build_fixture.py"
+    ],
+    "config_sha256": "b891ded86b012993c4bec9e214b9765755a2798f0ce71bf7e176667ecc6bcdd8",
+    "simulation_end_date": "2026-06-30"
+  },
+  "source_contract_version": "synthea-csv-1.0",
+  "files": {
+    "patients": {
+      "filename": "patients.csv",
+      "sha256": "93425b096112d17eee0a2c547fa3d3c36854825d410bf6d2a33f4be063a019f4",
+      "records": 25
+    },
+    "encounters": {
+      "filename": "encounters.csv",
+      "sha256": "aaf286687496aec9fe629bd0ae16298e39cae6eb0d5eb5a5543bcb800d568ff0",
+      "records": 43
+    },
+    "conditions": {
+      "filename": "conditions.csv",
+      "sha256": "c4705544990a63b33cb1376aeab1c1c4e3f9550d9a1b58e227f368dd193d2114",
+      "records": 32
+    },
+    "medications": {
+      "filename": "medications.csv",
+      "sha256": "71062b241dc287a830abb082396e2a65c8f46f21a743ff326ce6c11aeab40302",
+      "records": 3
+    },
+    "observations": {
+      "filename": "observations.csv",
+      "sha256": "e43dc31572476926279ffb6dbc0e8c0d0c3e7c92cc3a661385745941b505d91b",
+      "records": 37
+    },
+    "organizations": {
+      "filename": "organizations.csv",
+      "sha256": "dbf246f0c1ef20795b8ecd92bddd765fd712984d98dd7ec619427d7c4381240b",
+      "records": 2
+    }
+  },
+  "expected_quarantine": [
+    {
+      "file": "encounters",
+      "record_number": 43,
+      "reason": "invalid_timestamp"
+    },
+    {
+      "file": "observations",
+      "record_number": 6,
+      "reason": "field_count_mismatch"
+    }
+  ],
+  "notes": "Baseline full snapshot of the 25-person fixture."
+}

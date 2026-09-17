@@ -1,0 +1,58 @@
+# Hand-derived expectations for the 25-person fixture (PRD Sections 5.4 and 11.3).
+# Written from the case list in scripts/build_fixture.py, NOT computed by the pipeline.
+# Patient numbers: NN -> 00000000-0000-4000-8000-0000000000NN.
+#
+# As-of date D = 2026-06-30
+#   eligibility window     [2025-07-01, 2026-06-30]   (D - 364 days)
+#   C2 measurement window  [2026-04-02, 2026-06-30]   (D - 89 days)
+
+as_of_date: 2026-06-30
+
+quarantine:
+  fixture-A:
+    - {file: encounters,   record_number: 43, reason: invalid_timestamp}      # P11 "not-a-date"
+    - {file: observations, record_number: 6,  reason: field_count_mismatch}   # unquoted comma
+  fixture-B: []
+  fixture-C: []
+
+after_batch:
+  fixture-A:
+    # Not eligible: 03 (17 on D), 04 (died on D), 22 (no encounters)
+    eligible: [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25]
+    C1: [1, 2, 6, 8, 12, 13, 14, 15, 16, 17, 20, 25]
+    #  excluded from C1: 05 resolved 2026-06-29; 07 starts after D
+    C2: [1, 2, 8, 16, 17]
+    #  12 latest 130 after older 170; 13 exactly 140; 14 missing value (160 is outside the window);
+    #  15 wrong unit; 06 no measurement; 20 value 138; 25 measurement outside window;
+    #  16 tie at the same instant (150 / 145): both > 140, tie flag set;
+    #  17 later "not recorded" value is invalid and ignored -> latest valid 142
+    C3: [8, 10, 24]
+    #  09 two encounters; 11 one encounter one second before the window; 24 four encounters (not eight)
+    changed_people: all
+    systolic_tie: [16]
+
+  fixture-B:
+    eligible: [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 26]
+    C1: [1, 2, 6, 8, 12, 13, 14, 15, 16, 17, 20, 26]
+    C2: [1, 2, 8, 13, 16, 17]
+    C3: [8, 9, 10]
+    changed_people: [1, 9, 13, 24, 25, 26]
+
+  fixture-C:
+    # Replay of B's clinical content: identical memberships, nothing changed.
+    eligible: [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 26]
+    C1: [1, 2, 6, 8, 12, 13, 14, 15, 16, 17, 20, 26]
+    C2: [1, 2, 8, 13, 16, 17]
+    C3: [8, 9, 10]
+    changed_people: []
+
+stable_identity:
+  # Same person key before and after the Type 1 correction of patient 01.
+  type1_corrected_patient: 1
+  # P13's corrected systolic row is keyless: the old event identity disappears, a new one appears.
+  keyless_correction_patient: 13
+
+exclusions:
+  orphan_patient_rows: {encounters: 1, conditions: 1}   # patient ...0099 does not exist
+  unresolved_visit_links: {conditions: 1}               # P21 references a missing encounter
+  omop_person_excluded: [22]                            # no supported events

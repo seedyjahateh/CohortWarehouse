@@ -1,0 +1,41 @@
+concept_id	concept_name	domain_id	vocabulary_id	concept_class_id	standard_concept	concept_code	valid_start_date	valid_end_date	invalid_reason
+2000000001	Fictional metadata concept	Metadata	None	Undefined		FICT-NONE	19700101	20991231	
+2000000101	MALE	Gender	Gender	Gender	S	M	19700101	20991231	
+2000000102	FEMALE	Gender	Gender	Gender	S	F	19700101	20991231	
+2000000111	White	Race	Race	Race	S	5	19700101	20991231	
+2000000112	Black or African American	Race	Race	Race	S	3	19700101	20991231	
+2000000113	Asian	Race	Race	Race	S	2	19700101	20991231	
+2000000114	American Indian or Alaska Native	Race	Race	Race	S	1	19700101	20991231	
+2000000115	Native Hawaiian or Other Pacific Islander	Race	Race	Race	S	4	19700101	20991231	
+2000000121	Hispanic or Latino	Ethnicity	Ethnicity	Ethnicity	S	Hispanic	19700101	20991231	
+2000000122	Not Hispanic or Latino	Ethnicity	Ethnicity	Ethnicity	S	Not Hispanic	19700101	20991231	
+2000000131	Inpatient Visit	Visit	Visit	Visit	S	IP	19700101	20991231	
+2000000132	Outpatient Visit	Visit	Visit	Visit	S	OP	19700101	20991231	
+2000000133	Emergency Room Visit	Visit	Visit	Visit	S	ER	19700101	20991231	
+2000000141	EHR	Type Concept	Type Concept	Type Concept	S	OMOP4976890	19700101	20991231	
+2000000151	OMOP CDM Version 5.4	Metadata	CDM	CDM	S	CDM v5.4	19700101	20991231	
+2000000161	millimeter mercury column	Unit	UCUM	Unit	S	mm[Hg]	19700101	20991231	
+2000000162	kilogram	Unit	UCUM	Unit	S	kg	19700101	20991231	
+2000000163	percent	Unit	UCUM	Unit	S	%	19700101	20991231	
+2000000164	centimeter of water	Unit	UCUM	Unit	S	cm[H2O]	19700101	20991231	
+2000000165	score	Unit	UCUM	Unit	S	{score}	19700101	20991231	
+2000001001	Essential hypertension	Condition	SNOMED	Disorder	S	59621000	19700101	20991231	
+2000001002	Hypertensive disorder, systemic arterial	Condition	SNOMED	Disorder	S	38341003	19700101	20991231	
+2000001003	Type 2 diabetes mellitus	Condition	SNOMED	Disorder	S	44054006	19700101	20991231	
+2000001004	Prediabetes	Condition	SNOMED	Clinical Finding	S	15777000	19700101	20991231	
+2000001005	Full-time employment	Observation	SNOMED	Clinical Finding	S	160903007	19700101	20991231	
+2000001006	Neuropathy due to type 2 diabetes mellitus	Condition	SNOMED	Disorder		368581000119106	19700101	20991231	
+2000001007	Diabetic neuropathy	Condition	SNOMED	Disorder	S	230572002	19700101	20991231	
+2000001008	Reports of violence in the environment	Observation	SNOMED	Clinical Finding		424393004	19700101	20991231	
+2000001009	Fictional environment finding	Observation	SNOMED	Clinical Finding	S	FICT-OBS-1	19700101	20991231	
+2000001010	Fictional violence value	Meas Value	SNOMED	Qualifier Value	S	FICT-VAL-1	19700101	20991231	
+2000001099	Fictional deprecated target	Condition	SNOMED	Disorder		FICT-DEPR-1	19700101	20240101	D
+2000002001	Systolic blood pressure	Measurement	LOINC	Clinical Observation	S	8480-6	19700101	20991231	
+2000002002	Diastolic blood pressure	Measurement	LOINC	Clinical Observation	S	8462-4	19700101	20991231	
+2000002003	Body weight	Measurement	LOINC	Clinical Observation	S	29463-7	19700101	20991231	
+2000002004	Hemoglobin A1c/Hemoglobin.total in Blood	Measurement	LOINC	Lab Test	S	4548-4	19700101	20991231	
+2000002005	Tobacco smoking status	Observation	LOINC	Clinical Observation	S	72166-2	19700101	20991231	
+2000003001	lisinopril 10 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	314076	19700101	20991231	
+2000003002	amlodipine 5 MG Oral Tablet (fictional non-standard)	Drug	RxNorm	Clinical Drug		197361	19700101	20991231	
+2000003003	24 HR metformin hydrochloride 500 MG Extended Release Oral Tablet	Drug	RxNorm	Clinical Drug	S	860975	19700101	20991231	
+2000003004	Fictional amlodipine standard	Drug	RxNorm	Clinical Drug	S	FICT-RX-1	19700101	20991231	

@@ -1,0 +1,15 @@
+concept_class_id	concept_class_name	concept_class_concept_id
+CDM	CDM	2000000001
+Clinical Drug	Clinical Drug	2000000001
+Clinical Finding	Clinical Finding	2000000001
+Clinical Observation	Clinical Observation	2000000001
+Disorder	Disorder	2000000001
+Ethnicity	Ethnicity	2000000001
+Gender	Gender	2000000001
+Lab Test	Lab Test	2000000001
+Qualifier Value	Qualifier Value	2000000001
+Race	Race	2000000001
+Type Concept	Type Concept	2000000001
+Undefined	Undefined	2000000001
+Unit	Unit	2000000001
+Visit	Visit	2000000001

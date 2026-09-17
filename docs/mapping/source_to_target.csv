@@ -1,0 +1,48 @@
+source_file,source_column,target_table,target_column,sql_expression,type,null_default_policy,key_role,vocabulary,routing_rule,rationale,owner,requirement_id,test_id
+patients.csv,Id,dim_patient,patient_key,ops.entity_key_map(patient) surrogate,integer,never null,surrogate PK,,,Stable integer key across rebuilds,analytics-engineering,MOD-01;8.4.1,unique_dim_patient_patient_key
+patients.csv,Id,dim_patient,patient_pseudo_id,left(sha256(dataset_id||':'||Id),20),text,never null,pseudonymous natural key,,,No source UUID in published marts,analytics-engineering,GOV minimum necessary,unique_dim_patient_patient_pseudo_id
+patients.csv,BIRTHDATE,dim_patient,birth_date,BIRTHDATE::date,date,required (quarantine if invalid),,,,Protected analytical layer only,analytics-engineering,8.3,assert_structural_dates_plausible
+patients.csv,DEATHDATE,dim_patient,death_date,DEATHDATE::date,date,null when blank,,,,Supplied value only,analytics-engineering,8.3,assert_structural_dates_plausible
+patients.csv,GENDER,dim_patient,recorded_sex,upper(GENDER),text,null when blank,,,,Recorded sex as supplied,analytics-engineering,8.3,
+patients.csv,RACE,dim_patient,race,lower(RACE),text,null when blank,,,,,analytics-engineering,8.3,
+patients.csv,ETHNICITY,dim_patient,ethnicity,lower(ETHNICITY),text,null when blank,,,,,analytics-engineering,8.3,
+patients.csv,STATE,dim_patient,state,STATE,text,null when blank,,,,Type 1 (no historical geography),analytics-engineering,8.3,
+patients.csv,Id,PERSON,person_id,dim_patient.patient_key,integer,never null,PK,,included persons only,Shared with star,analytics-engineering,8.4.2,unique_omop_person_person_id
+patients.csv,GENDER,PERSON,gender_concept_id,seed demographic_concepts -> vocab (Gender code),integer,0 when unmapped,,Gender,,Resolved by code never hard-coded id,analytics-engineering,8.5,assert_omop_concepts_valid
+patients.csv,BIRTHDATE,PERSON,year_of_birth/month_of_birth/day_of_birth,extract(...),integer,required,,,,birth_datetime left null (date-only source),analytics-engineering,8.5,not_null_omop_person_year_of_birth
+patients.csv,RACE,PERSON,race_concept_id,seed demographic_concepts -> vocab (Race code),integer,0 when unmapped (e.g. other),,Race,,,analytics-engineering,8.5,assert_omop_concepts_valid
+patients.csv,ETHNICITY,PERSON,ethnicity_concept_id,seed demographic_concepts -> vocab (Ethnicity code),integer,0 when unmapped,,Ethnicity,,,analytics-engineering,8.5,assert_omop_concepts_valid
+patients.csv,Id,PERSON,person_source_value,patient_pseudo_id,varchar(50),never null,,,,Pseudonym not UUID,analytics-engineering,US-08,governance:omop_person_source_value_pseudonymous
+patients.csv,DEATHDATE,DEATH,death_date,DEATHDATE::date where <= D,date,row omitted when null or after D,PK person_id,,,No invented cause,analytics-engineering,8.5,unique_omop_death_person_id
+encounters.csv,Id,fct_encounter,encounter_key,ops.entity_key_map(encounter),integer,never null,PK,,,,analytics-engineering,8.2,unique_fct_encounter_encounter_key
+encounters.csv,PATIENT,fct_encounter,patient_key,registry(patient),integer,orphans excluded to ledger (never Unknown),FK dim_patient,,,,analytics-engineering,STG-03,relationships_fct_encounter_patient_key
+encounters.csv,START,fct_encounter,start_at/start_date_key,START::timestamptz; UTC date -> YYYYMMDD,timestamptz/integer,required (quarantine if invalid),FK dim_date,,,,analytics-engineering,STG-01,relationships_fct_encounter_start_date_key
+encounters.csv,STOP,fct_encounter,stop_at/end_date_key,STOP::timestamptz; 0 key when absent,timestamptz/integer,null / key 0,FK dim_date,,,,analytics-engineering,STG-01,end_not_before_start
+encounters.csv,ORGANIZATION,fct_encounter,organization_key,registry(organization) if in snapshot else 0,integer,0 = Unknown,FK dim_organization,,,,analytics-engineering,STG-03,relationships_fct_encounter_organization_key
+encounters.csv,ENCOUNTERCLASS,fct_encounter,encounter_type_key,registry(encounter_type),integer,class must be in seed (blocking),FK dim_encounter_type,,,,analytics-engineering,11.1 required values,accepted_values_int_encounters_encounter_class_accepted
+encounters.csv,BASE_ENCOUNTER_COST,fct_encounter,source_base_encounter_cost,parse_numeric,numeric,null when missing/invalid (never 0),,,,Synthetic attribute; never summed with claim cost,analytics-engineering,8.2,
+encounters.csv,TOTAL_CLAIM_COST,fct_encounter,source_total_claim_cost,parse_numeric,numeric,null when missing/invalid,,,,,analytics-engineering,8.2,
+encounters.csv,Id,VISIT_OCCURRENCE,visit_occurrence_id,fct_encounter.encounter_key,integer,never null,PK,,,Shared with star,analytics-engineering,8.4.2,unique_omop_visit_occurrence_visit_occurrence_id
+encounters.csv,ENCOUNTERCLASS,VISIT_OCCURRENCE,visit_concept_id,seed encounter_classes -> vocab (Visit code),integer,0 when no reviewed mapping,,Visit,,not_reviewed demo mapping,analytics-engineering,8.5,assert_reference_and_cohort_concepts_resolve
+encounters.csv,STOP,VISIT_OCCURRENCE,visit_end_date,coalesce(stop_date; start_date),date,imputed = start when absent (crosswalk flag),,,,Required CDM field,analytics-engineering,8.5,end_not_before_start
+conditions.csv,(row content),fct_condition,condition_key,registry(condition: fingerprint:ordinal),integer,never null,PK,,,No native id; multiplicity preserved,analytics-engineering,8.4.3,unique_fct_condition_condition_key
+conditions.csv,SYSTEM+CODE,fct_condition,clinical_code_key,registry(clinical_code: vocabulary|code),integer,never null,FK dim_clinical_code,SNOMED (alias seed),,Blank SYSTEM uses table default,analytics-engineering,MAP-01,relationships_fct_condition_clinical_code_key
+conditions.csv,ENCOUNTER,fct_condition,encounter_key,linked encounter key else null,integer,null when absent/unresolved; wrong person blocks,nullable FK,,,,analytics-engineering,STG-03,assert_no_wrong_person_visit_links
+conditions.csv,START,fct_condition,start_date,START::date,date,required,,,,,analytics-engineering,STG-01,
+conditions.csv,CODE,CONDITION_OCCURRENCE,condition_concept_id,valid standard source concept or Maps to target,integer,0 when unmapped (retained),,SNOMED,target domain Condition,Fan-out one row per target,analytics-engineering,MAP-02/03,assert_omop_concepts_valid
+conditions.csv,CODE,CONDITION_OCCURRENCE,condition_source_value / condition_source_concept_id,left(CODE;50) / source concept,varchar(50)/integer,0 when source concept not found,,SNOMED,,,analytics-engineering,MAP-02,
+conditions.csv,CODE,OBSERVATION,observation_concept_id,Maps to target in Observation domain (+Maps to value),integer,,,SNOMED,target domain Observation,Wrong-domain source routed by target domain,analytics-engineering,MAP-03,assert_omop_event_accounting
+medications.csv,(row content),fct_medication,medication_key,registry(medication),integer,never null,PK,,,,analytics-engineering,8.4.3,unique_fct_medication_medication_key
+medications.csv,DISPENSES,fct_medication,source_dispenses,parse_numeric,numeric,null when missing/invalid,,,,Not individual fills; no adherence inference,analytics-engineering,8.2,
+medications.csv,CODE,DRUG_EXPOSURE,drug_concept_id,valid standard or Maps to target,integer,0 when unmapped,,RxNorm (table default),target domain Drug,,analytics-engineering,MAP-02,assert_omop_concepts_valid
+medications.csv,STOP,DRUG_EXPOSURE,drug_exposure_end_date,coalesce(stop_date; start_date),date,imputed = start (crosswalk flag); verbatim_end_date keeps source,,,,Documented conservative convention,analytics-engineering,8.5,end_not_before_start
+observations.csv,(row content),fct_observation,observation_key,registry(observation),integer,never null,PK,,,Repeated same-time values preserved,analytics-engineering,8.4.3,unique_fct_observation_observation_key
+observations.csv,VALUE,fct_observation,value_as_number / value_parse_status,numeric when TYPE=numeric and parses,numeric/text,missing|invalid|numeric|text (never 0),,,,STG-02,analytics-engineering,STG-02,accepted_values_stg_synthea__observations_value_parse_status
+observations.csv,UNITS,fct_observation,unit_key,registry(unit) else 0,integer,0 = no unit supplied,FK dim_unit,UCUM (unit_policy),,No conversions,analytics-engineering,MAP-05,relationships_fct_observation_unit_key
+observations.csv,CODE,MEASUREMENT,measurement_concept_id,valid standard or Maps to target,integer,0 when unmapped vital-signs/laboratory,,LOINC (table default),target domain Measurement,,analytics-engineering,MAP-03/04,assert_omop_concepts_valid
+observations.csv,UNITS,MEASUREMENT,unit_concept_id,unit_policy -> UCUM concept,integer,null no unit / 0 unmapped unit,,UCUM,,,analytics-engineering,MAP-05,assert_omop_concepts_valid
+observations.csv,VALUE,OBSERVATION,value_as_string,left(VALUE;60) when text,varchar(60),null for numeric,,,,,analytics-engineering,8.5,
+organizations.csv,Id,dim_organization,organization_key,registry(organization); 0 = Unknown,integer,never null,PK,,,Complete snapshot each batch; CARE_SITE is P1,analytics-engineering,8.3,unique_dim_organization_organization_key
+organizations.csv,NAME,dim_organization,organization_name,NAME,text,null when blank,,,,Type 1,analytics-engineering,8.3,
+(supported events),first/last event date,OBSERVATION_PERIOD,observation_period_start_date/end_date,min(event start) / least(max boundary; D; death),date,person excluded if first event after min(D;death),PK = person_id,,,Inferred span not coverage,analytics-engineering,8.5,end_not_before_start_omop_observation_period
+(manifest),generator+versions,CDM_SOURCE,cdm_source_name..vocabulary_version,see omop_cdm_source.sql,mixed,exactly one row,,CDM,,Provenance,analytics-engineering,8.5;GOV-01,exactly_one_row_omop_cdm_source

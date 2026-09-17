@@ -1,0 +1,63 @@
+{
+  "manifest_version": 1,
+  "dataset_id": "fixture",
+  "batch_id": "fixture-B",
+  "source_revision": 2,
+  "as_of_date": "2026-06-30",
+  "delivered_at": "2026-07-02T04:30:00Z",
+  "delivery_kind": "scheduled",
+  "replacement_mode": "scoped",
+  "synthetic": true,
+  "generator": {
+    "name": "cohortwarehouse-fixture-builder",
+    "version": "1",
+    "seed": 20260915,
+    "arguments": [
+      "scripts/build_fixture.py"
+    ],
+    "config_sha256": "b891ded86b012993c4bec9e214b9765755a2798f0ce71bf7e176667ecc6bcdd8",
+    "simulation_end_date": "2026-06-30"
+  },
+  "source_contract_version": "synthea-csv-1.0",
+  "files": {
+    "patients": {
+      "filename": "patients.csv",
+      "sha256": "6b130ebe61826f643a9efaae54af5bd867d467026b45822f79f1c9d2e9f90fcd",
+      "records": 5
+    },
+    "encounters": {
+      "filename": "encounters.csv",
+      "sha256": "ac9309213dda9fb8a9b6c833fe6fa66ac9ba330aba71c55e1b5ac8923f8d86f2",
+      "records": 7
+    },
+    "conditions": {
+      "filename": "conditions.csv",
+      "sha256": "33bb32f284640a2a2739a2c97851153661e2f83a1049487201e4b28c7d739e55",
+      "records": 3
+    },
+    "medications": {
+      "filename": "medications.csv",
+      "sha256": "d146d2cd790ecceb8ed79cd49e8f02e13ae1f7601eda5285c0061e7c5a6c8495",
+      "records": 2
+    },
+    "observations": {
+      "filename": "observations.csv",
+      "sha256": "bca7f56748620dbfe6844e55ea44ca5efe68c1b2722c131d051f6728c8232998",
+      "records": 8
+    },
+    "organizations": {
+      "filename": "organizations.csv",
+      "sha256": "03289331dcf1ef1fe3b696a8ee061bbff8380a257c42f032c4dacdd09e47f35d",
+      "records": 2
+    }
+  },
+  "patient_scope": [
+    "00000000-0000-4000-8000-000000000001",
+    "00000000-0000-4000-8000-000000000009",
+    "00000000-0000-4000-8000-000000000013",
+    "00000000-0000-4000-8000-000000000024",
+    "00000000-0000-4000-8000-000000000025",
+    "00000000-0000-4000-8000-000000000026"
+  ],
+  "notes": "Type 1 correction (P01), late encounter (P09), keyless correction (P13), all events removed (P24), person removed (P25), new person (P26), organization renamed."
+}

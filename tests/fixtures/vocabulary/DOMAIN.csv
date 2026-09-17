@@ -1,0 +1,13 @@
+domain_id	domain_name	domain_concept_id
+Condition	Condition	2000000001
+Drug	Drug	2000000001
+Measurement	Measurement	2000000001
+Observation	Observation	2000000001
+Visit	Visit	2000000001
+Gender	Gender	2000000001
+Race	Race	2000000001
+Ethnicity	Ethnicity	2000000001
+Type Concept	Type Concept	2000000001
+Unit	Unit	2000000001
+Metadata	Metadata	2000000001
+Meas Value	Meas Value	2000000001
