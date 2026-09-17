@@ -184,7 +184,13 @@ def _load_file(
     result = FileResult(file_contract.key)
     quarantined: list[_Quarantined] = []
     loaded = file_contract.loaded_columns
-    patient_col = file_contract.patient_column
+    loaded_names = [c.name for c in loaded]
+    patient_index = loaded_names.index(file_contract.patient_column) if file_contract.patient_column else None
+    unique_key = UNIQUE_NATURAL_KEYS.get(file_contract.key)
+    unique_index = [c.raw_name for c in loaded].index(unique_key) if unique_key else None
+    # Duplicate natural keys are detected while streaming (O(n) memory in distinct keys), never by a
+    # self-join over freshly loaded, un-analysed rows.
+    key_records: dict[str, list[int]] = {}
 
     with _open_records(path) as (header, reader):
         header_check = check_header(file_contract, header)
@@ -216,10 +222,9 @@ def _load_file(
                     reason = validate_value(column, value)
                     if reason:
                         break
-                if reason is None and scope is not None and patient_col:
-                    patient = values[[c.name for c in loaded].index(patient_col)]
-                    if patient not in scope:
-                        reason = "patient_out_of_scope"
+                if (reason is None and scope is not None and patient_index is not None
+                        and values[patient_index] not in scope):
+                    reason = "patient_out_of_scope"
                 if reason:
                     quarantined.append(
                         _Quarantined(record_number, reason.split(":")[0], reason, fingerprint,
@@ -231,6 +236,8 @@ def _load_file(
                      fingerprint, *values]
                 )
                 result.accepted += 1
+                if unique_index is not None:
+                    key_records.setdefault(values[unique_index], []).append(record_number)
 
     if result.parsed != declared["records"]:
         raise ContractError(
@@ -238,19 +245,18 @@ def _load_file(
             f"{result.parsed} were parsed; refusing to guess which rows shifted"
         )
 
-    # Duplicate natural keys inside one file are ambiguous: quarantine every copy.
-    unique_key = UNIQUE_NATURAL_KEYS.get(file_contract.key)
-    if unique_key and result.accepted:
+    # Duplicate natural keys inside one file are ambiguous: quarantine every copy (primary-key delete only).
+    duplicate_records = sorted(r for records in key_records.values() if len(records) > 1 for r in records)
+    if duplicate_records:
         cur.execute(
             sql.SQL(
                 """
-                delete from {table} t
-                 using (select {key} from {table} where _batch_id = %s group by {key} having count(*) > 1) d
-                 where t._batch_id = %s and t.{key} = d.{key}
-                returning t._record_number, t._row_fingerprint, t.{key}
+                delete from {table}
+                 where _batch_id = %s and _record_number = any(%s)
+                returning _record_number, _row_fingerprint, {key}
                 """
             ).format(table=sql.Identifier("raw", file_contract.key), key=sql.Identifier(unique_key)),
-            (manifest.batch_id, manifest.batch_id),
+            (manifest.batch_id, duplicate_records),
         )
         for record_number, fingerprint, key_value in cur.fetchall():
             quarantined.append(

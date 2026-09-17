@@ -6,6 +6,10 @@ approved_generators:
     versions: ["v3.3.0"]
     use: release_benchmark
     reviewed: 2026-09-15
+  - name: cohortwarehouse-incremental-derivation
+    versions: ["1"]
+    use: nfr02_incremental_benchmark (derived only from approved synthetic Synthea deliveries)
+    reviewed: 2026-09-17
   - name: cohortwarehouse-fixture-builder
     versions: ["1"]
     use: test_fixture_only

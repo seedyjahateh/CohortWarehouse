@@ -76,8 +76,12 @@ def benchmark(*, profile: str = "demo", runs: int = 3, manifest: str | None = No
         log.info("benchmark run %d: build+gate %.1fs, gate=%s", index + 1, build_seconds, run["status"])
 
     with connect("admin") as conn:
-        rows = fetch_all_dicts(conn, "select file_key, parsed_records, accepted_records, quarantined_records "
-                                     "from ops.batch_file where batch_id = %s order by file_key", (loaded.batch_id,))
+        rows = fetch_all_dicts(conn, "select file_key, parsed_records, accepted_records, quarantined_records, "
+                                     "load_seconds from ops.batch_file where batch_id = %s order by file_key",
+                               (loaded.batch_id,))
+    # Loader timings recorded at ingestion (valid even when this benchmark found the batch already loaded).
+    recorded_load_seconds = float(sum(r["load_seconds"] or 0 for r in rows))
+    recorded_accepted = sum(r["accepted_records"] for r in rows)
     builds = [m["build_and_gate_seconds"] for m in measurements]
     totals = [m["end_to_end_seconds"] for m in measurements if m["end_to_end_seconds"] is not None]
     report = {
@@ -86,9 +90,12 @@ def benchmark(*, profile: str = "demo", runs: int = 3, manifest: str | None = No
         "hardware": _hardware(),
         "batch_id": loaded.batch_id,
         "source_rows": rows,
-        "raw_load": {"outcome": ingest_result.outcome, "seconds": round(load_seconds, 2),
-                     "accepted_rows_per_second": round(accepted / load_seconds, 1)
-                     if ingest_result.outcome == "loaded" and load_seconds else None},
+        "raw_load": {"outcome_this_invocation": ingest_result.outcome,
+                     "invocation_seconds": round(load_seconds, 2) if ingest_result.outcome == "loaded" else None,
+                     "recorded_file_load_seconds": round(recorded_load_seconds, 1),
+                     "accepted_rows": recorded_accepted,
+                     "accepted_rows_per_second": round(recorded_accepted / recorded_load_seconds, 1)
+                     if recorded_load_seconds else None},
         "runs": measurements,
         "build_and_gate_seconds": {"min": min(builds), "median": statistics.median(builds), "max": max(builds)},
         "end_to_end_seconds": ({"min": min(totals), "median": statistics.median(totals), "max": max(totals)}
