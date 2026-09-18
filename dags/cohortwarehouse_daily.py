@@ -123,10 +123,16 @@ def cohortwarehouse_daily():
 
     @task(**TRANSIENT_RETRY)
     def check_delivery_freshness(batch_id: str) -> str:
+        """Freshness of the dataset this batch belongs to (a manual run may target any dataset)."""
         _stage_environment()
+        from cohortwarehouse.db import connect, fetch_one_dict
         from cohortwarehouse.freshness import check_freshness
 
-        report = check_freshness(DATASET_ID)
+        with connect("transformer") as conn:
+            batch = fetch_one_dict(conn, "select dataset_id from ops.batch where batch_id = %s", (batch_id,))
+        if batch is None:
+            raise AirflowFailException(f"batch {batch_id!r} has not been ingested")
+        report = check_freshness(batch["dataset_id"])
         print({k: v for k, v in report.items() if k != "dataset_id"})
         if report["status"] == "fail":
             raise AirflowFailException(f"delivery freshness failed: {report}")
@@ -149,36 +155,38 @@ def cohortwarehouse_daily():
             raise _non_retryable(exc) from exc
         return run["run_id"]
 
+    # Task parameters are named `pipeline_run_id`: `run_id` is a reserved Airflow context key, and a task
+    # argument with that name fails at execution time ("is a part of kwargs and therefore reserved").
     def _stage_task(stage: str):
         @task(task_id=f"dbt_build_{stage}", pool=WRITE_POOL, **TRANSIENT_RETRY)
-        def _build(run_id: str) -> str:
+        def _build(pipeline_run_id: str) -> str:
             _stage_environment()
             from cohortwarehouse.pipeline import build_stage
 
             try:
-                summary = build_stage(run_id, stage)
+                summary = build_stage(pipeline_run_id, stage)
             except Exception as exc:
                 raise _non_retryable(exc) from exc
             print({k: v for k, v in summary.items() if k != "run_id"})
-            return run_id
+            return pipeline_run_id
 
         return _build
 
     @task(pool=WRITE_POOL)
-    def quality_and_reconciliation_gate(run_id: str) -> str:
+    def quality_and_reconciliation_gate(pipeline_run_id: str) -> str:
         _stage_environment()
         from cohortwarehouse.pipeline import record_built_state
         from cohortwarehouse.quality import quality_gate
 
         try:
-            record_built_state(run_id)
-            quality_gate(run_id)
+            record_built_state(pipeline_run_id)
+            quality_gate(pipeline_run_id)
         except Exception as exc:
             raise _non_retryable(exc) from exc
-        return run_id
+        return pipeline_run_id
 
     @task(pool=WRITE_POOL, **TRANSIENT_RETRY)
-    def publish_release(run_id: str) -> str | None:
+    def publish_release(pipeline_run_id: str) -> str | None:
         _stage_environment()
         from cohortwarehouse.publish import publish
 
@@ -186,37 +194,41 @@ def cohortwarehouse_daily():
             print("validation-only run: publication skipped by design")
             return None
         try:
-            return publish(run_id)["release_id"]
+            return publish(pipeline_run_id)["release_id"]
         except Exception as exc:
             raise _non_retryable(exc) from exc
 
     @task(retries=2, retry_delay=dt.timedelta(minutes=2))
-    def generate_docs_and_release_report(release_id: str | None, run_id: str) -> str | None:
+    def generate_docs_and_release_report(release_id: str | None, pipeline_run_id: str) -> str | None:
         """A failure here is 'documentation incomplete'; the published data does not roll back."""
         _stage_environment()
         from cohortwarehouse.release_report import write_release_report
 
-        return write_release_report(run_id, release_id)
+        return write_release_report(pipeline_run_id, release_id)
 
     @task(trigger_rule="all_done")
-    def record_run_summary(run_id: str) -> dict:
+    def record_run_summary(pipeline_run_id: str | None) -> dict:
+        """Runs whatever happened upstream; a DAG run that failed before a pipeline run existed is still summarised."""
+        if not pipeline_run_id:
+            print("no pipeline run was started (failure before prepare_changed_persons); see upstream task logs")
+            return {"run_id": None, "status": "not_started"}
         _stage_environment()
         from cohortwarehouse.db import connect, fetch_one_dict
 
         with connect("transformer") as conn:
             run = fetch_one_dict(conn, "select run_id, status, mode, stage_timings, counts from ops.pipeline_run "
-                                       "where run_id = %s", (run_id,))
+                                       "where run_id = %s", (pipeline_run_id,))
         print(run)
-        return {"run_id": run_id, "status": run["status"] if run else "unknown"}
+        return {"run_id": pipeline_run_id, "status": run["status"] if run else "unknown"}
 
     delivery = resolve_manifest()
     batch_id = check_delivery_freshness(validate_and_load_raw(delivery))
-    run_id = prepare_changed_persons(batch_id)
-    built = _stage_task("bi")(_stage_task("star_omop")(_stage_task("staging_intermediate")(run_id)))
+    pipeline_run_id = prepare_changed_persons(batch_id)
+    built = _stage_task("bi")(_stage_task("star_omop")(_stage_task("staging_intermediate")(pipeline_run_id)))
     gated = quality_and_reconciliation_gate(built)
     release = publish_release(gated)
     docs = generate_docs_and_release_report(release, gated)
-    summary = record_run_summary(run_id)
+    summary = record_run_summary(pipeline_run_id)
     docs >> summary
 
 

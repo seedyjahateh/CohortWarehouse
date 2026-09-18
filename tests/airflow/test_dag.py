@@ -58,6 +58,25 @@ def test_task_order(dag):
             upstream, downstream)
 
 
+RESERVED_CONTEXT_KEYS = {
+    "run_id", "ds", "ds_nodash", "ts", "ti", "task_instance", "dag_run", "params", "logical_date",
+    "data_interval_start", "data_interval_end", "conf", "dag", "task", "macros", "var", "conn",
+}
+
+
+def test_task_arguments_do_not_shadow_airflow_context_keys(dag):
+    """Found in the first live run: an argument named `run_id` parses fine but fails at execution with
+    "The key 'run_id' in args is a part of kwargs and therefore reserved"."""
+    import inspect
+
+    for task in dag.tasks:
+        callable_ = getattr(task, "python_callable", None)
+        if callable_ is None:
+            continue
+        clashes = RESERVED_CONTEXT_KEYS & set(inspect.signature(callable_).parameters)
+        assert not clashes, f"{task.task_id} uses reserved context names {sorted(clashes)}"
+
+
 def test_parameters_and_retries(dag):
     assert {"batch_id", "manifest_path", "full_refresh", "validation_only"} <= set(dag.params.keys())
     assert dag.get_task("validate_and_load_raw").retries == 2

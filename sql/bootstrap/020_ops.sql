@@ -195,9 +195,6 @@ create table if not exists ops.build_state (
 -- Reference-data fingerprint (organization id set): a change forces a full refresh because
 -- unchanged people's facts may reference organizations that appeared or disappeared.
 alter table ops.pipeline_run add column if not exists reference_fingerprint text;
--- Which validation profile certified the run behind a release: only `release` (pinned real vocabulary)
--- certifies a release; `fixture` runs are exercises on the fictional test vocabulary.
-alter table ops.release add column if not exists validation_profile text;
 alter table ops.build_state add column if not exists reference_fingerprint text;
 alter table ops.build_state add column if not exists as_of_date date;
 
@@ -245,6 +242,10 @@ create table if not exists ops.release (
     published_by        text not null default session_user,
     dropped_at          timestamptz
 );
+
+-- Which validation profile certified the run behind a release: only `release` (pinned real vocabulary)
+-- certifies a release; `fixture` runs are exercises on the fictional test vocabulary.
+alter table ops.release add column if not exists validation_profile text;
 
 create table if not exists ops.current_release (
     dataset_id   text primary key,

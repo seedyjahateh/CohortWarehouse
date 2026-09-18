@@ -39,7 +39,8 @@ run in every build and again in the quality gate · `gate` = Python checks in `c
 | Governance: denylist, secrets | dbt `assert_bi_columns_minimum_necessary`, gate denylist, CI gitleaks | dbt/gate/CI | auto (CI secret scan runs on GitHub only) |
 | Retention | dry-run keeps current/previous/pinned | lifecycle `test_11` | auto |
 | Freshness | 26 h / 48 h thresholds, frozen-demo label | unit `test_freshness_and_ddl` | auto |
-| DAG contract | schedule, order, params, retries, pool, no import I/O | dag | written; **executes in CI only** (Airflow not installed locally) |
+| DAG contract | schedule, order, params, retries, pool, no import I/O, no reserved argument names | dag (CI) | auto |
+| DAG end to end on live Airflow 3.1 | manual run with `batch_id`: all 11 tasks succeed, release published, docs generated; scheduled run without a delivery fails promptly | `docs/evidence/airflow-live-run.md` | verified once (manual acceptance) |
 | DOC gates | every model: description, grain, owner; published models tested; exposure covers BI | unit `test_dbt_project_documentation` | auto |
 | BI-01..05, NFR-06/07 | measures, reconciliation scenarios, screenshots, Performance Analyzer | `bi/measures.dax`, `docs/metric-contracts.md` | **open** (PBIX not yet built) |
 | ING-01 reproducible generation | two runs of the pinned configuration compared per file | `docs/evidence/generation-reproducibility.md` | auto-verified manually (content identical; record order is documented volatile metadata) |

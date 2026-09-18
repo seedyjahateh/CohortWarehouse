@@ -23,8 +23,8 @@ Specification: [`PRD.md`](PRD.md). Decisions: [`docs/decisions/`](docs/decisions
 | Cohorts C1–C3, BI tables, coverage and profile tables | ✅ exact match to independent SQL, OMOP-derived SQL and hand-derived fixture expectations |
 | Quality gate (265 dbt tests + 12 Python checks on the fixture), immutable releases, restore, retention | ✅ |
 | Least-privilege roles with denial tests | ✅ |
-| Airflow 3 DAG + image | ✅ written; DAG structure test runs in CI; **not yet run end-to-end on a live Airflow** |
-| GitHub Actions CI | ✅ written; **not yet executed on GitHub** |
+| Airflow 3 DAG + image | ✅ ran end to end on live Airflow 3.1: all 11 tasks succeeded and published a release; four runtime defects found and fixed ([evidence](docs/evidence/airflow-live-run.md)) |
+| GitHub Actions CI | ✅ green on GitHub (static checks + gitleaks, fixture warehouse lifecycle, DAG tests on pinned Airflow) |
 | Power BI `.pbix`, screenshots, Performance Analyzer evidence | ⏳ open — measures and contracts are ready (`bi/`, `docs/metric-contracts.md`) |
 | 1,000-patient Synthea benchmark (1,183 people, 1.34M event rows) | ✅ generated, loaded and built; reproducibility verified; all 275 dbt tests pass at scale ([benchmark](docs/benchmark.md)) |
 | NFR-02 incremental (5% of patients changed) | ✅ 214 s build+gate against a 300 s budget (publication unmeasured) |
