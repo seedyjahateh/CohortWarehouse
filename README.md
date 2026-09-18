@@ -28,7 +28,8 @@ Specification: [`PRD.md`](PRD.md). Decisions: [`docs/decisions/`](docs/decisions
 | Power BI `.pbix`, screenshots, Performance Analyzer evidence | ⏳ open — measures and contracts are ready (`bi/`, `docs/metric-contracts.md`) |
 | 1,000-patient Synthea benchmark (1,183 people, 1.34M event rows) | ✅ generated, loaded and built; reproducibility verified; all 275 dbt tests pass at scale ([benchmark](docs/benchmark.md)) |
 | NFR-02 incremental (5% of patients changed) | ✅ 214 s build+gate against a 300 s budget (publication unmeasured) |
-| NFR-01 load → publication ≤ 20 min, 3 runs; NFR-04/07/08 | ⏳ open — publication at scale is blocked by the vocabulary gate; BI and scheduled-run targets need the report and a live Airflow |
+| NFR-08 SQL cohort latency | ✅ p95 2.2–16.4 ms over 25 runs per query, plans archived ([evidence](docs/evidence/sql-latency.md)) |
+| NFR-01 load → publication ≤ 20 min (3 runs); NFR-04/07 | ⏳ open — publication at scale is blocked by the vocabulary gate; BI and scheduled-run targets need the report and a live Airflow |
 | Real OHDSI Athena vocabulary validation | ⏳ open — requires Athena access; release profile refuses the fictional vocabulary |
 
 Known limitations are collected in [`docs/omop-scope.md`](docs/omop-scope.md#known-limitations) and the

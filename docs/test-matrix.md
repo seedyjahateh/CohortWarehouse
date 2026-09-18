@@ -45,5 +45,5 @@ run in every build and again in the quality gate · `gate` = Python checks in `c
 | ING-01 reproducible generation | two runs of the pinned configuration compared per file | `docs/evidence/generation-reproducibility.md` | auto-verified manually (content identical; record order is documented volatile metadata) |
 | NFR-02 ≤ 5 min for a 5% change | measured 214 s build+gate at 1,183 people / 1.34M rows | `docs/benchmark.md` | **met for build + gate**; publication unmeasured (vocabulary gate) |
 | NFR-01 ≤ 20 min load → publication | measured 620 s for load + build + gate, one run | `docs/benchmark.md` | **incomplete**: publication blocked by the fictional vocabulary; 3 runs not done |
-| NFR-08 SQL cohort p95 ≤ 2 s | — | — | **open** |
+| NFR-08 SQL cohort p95 ≤ 2 s | 6 reference queries, 25 warm runs each, plans archived | `scripts/measure_query_latency.py`, `docs/evidence/sql-latency.md` | **met** (p95 2.2–16.4 ms) |
 | NFR-04 10 scheduled runs | Airflow evidence | Airflow | **open** |

@@ -140,6 +140,6 @@ well under a second — both far inside budget, but not at benchmark scale.
 | NFR-01 ≤ 20 min load → publication, 3 runs | **incomplete**: load + build + gate measured at 10 min 20 s on one run; publication blocked by the vocabulary gate; 3-run repeat not done |
 | NFR-02 ≤ 5 min for a 5% change | **met for build + gate** (214 s); publication unmeasured |
 | NFR-07 BI p95 visual ≤ 2 s / page ≤ 5 s | **not started**: needs the Power BI report |
-| NFR-08 SQL cohort p95 ≤ 2 s over ≥ 20 runs with plans | **not started** |
+| NFR-08 SQL cohort p95 ≤ 2 s over ≥ 20 runs with plans | **met**: p95 2.2–16.4 ms across six reference queries, 25 warm runs each, plans archived (`docs/evidence/sql-latency.md`) |
 | NFR-04 ten scheduled runs meeting 06:00 UTC | **not started**: needs a live Airflow deployment |
 | Recovery ≤ 15 min at benchmark scale | measured only at fixture scale (automated drill) |
