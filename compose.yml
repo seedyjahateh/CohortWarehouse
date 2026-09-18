@@ -59,7 +59,12 @@ services:
       - -c
       - shared_buffers=512MB
       - -c
-      - work_mem=64MB
+      - work_mem=96MB
+      # Index builds on the million-row event models dominate a full refresh; 64MB forces repeated spills.
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - max_wal_size=2GB
     ports:
       - "127.0.0.1:${CW_PG_PORT:-5433}:5432"   # localhost only
     volumes:

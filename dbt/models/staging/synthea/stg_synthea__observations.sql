@@ -1,3 +1,4 @@
+{{ config(materialized='table', indexes=[{'columns': ['patient_id']}, {'columns': ['source_code', 'observation_date']}], post_hook=["analyze {{ this }}"]) }}
 -- Grain: one source observation record, including repeated same-time values, in the selected revision.
 with src as (
     {{ snapshot_rows('observations', 'patient') }}

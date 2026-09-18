@@ -1,3 +1,4 @@
+{{ config(materialized='table', indexes=[{'columns': ['organization_id'], 'unique': True}], post_hook=["analyze {{ this }}"]) }}
 -- Grain: one organization in the complete reference snapshot delivered with the target batch.
 select
     r._dataset_id as dataset_id,

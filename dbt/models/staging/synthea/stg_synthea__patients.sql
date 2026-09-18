@@ -1,3 +1,4 @@
+{{ config(materialized='table', indexes=[{'columns': ['patient_id'], 'unique': True}], post_hook=["analyze {{ this }}"]) }}
 -- Grain: one patient in the selected input revision.
 with src as (
     {{ snapshot_rows('patients', 'id') }}

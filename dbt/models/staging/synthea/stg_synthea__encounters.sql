@@ -1,3 +1,4 @@
+{{ config(materialized='table', indexes=[{'columns': ['encounter_id'], 'unique': True}, {'columns': ['patient_id']}, {'columns': ['start_date']}], post_hook=["analyze {{ this }}"]) }}
 -- Grain: one source encounter in the selected input revision. Timestamps normalised to UTC.
 -- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (

@@ -97,6 +97,16 @@ end
 $$;
 revoke all on function ops.analyze_raw() from public;
 
+-- Same for the key registry, which the transformer fills through dbt pre-hooks but does not own. Without
+-- fresh statistics the planner joins a multi-million-row registry as if it held a single row.
+create or replace function ops.analyze_key_registry() returns void
+language plpgsql security definer set search_path = pg_catalog as $$
+begin
+    execute 'analyze ops.entity_key_map';
+end
+$$;
+revoke all on function ops.analyze_key_registry() from public;
+
 -- ---------------------------------------------------------------- vocabulary provenance
 create table if not exists ops.vocabulary_release (
     vocabulary_version  text primary key,

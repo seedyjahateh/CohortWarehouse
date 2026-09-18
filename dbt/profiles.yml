@@ -12,5 +12,6 @@ cohortwarehouse:
       role: cwr_transformer
       schema: work_audit
       threads: "{{ env_var('CW_DBT_THREADS', '4') | as_number }}"
-      connect_timeout: 10
+      connect_timeout: "{{ env_var('CW_PG_CONNECT_TIMEOUT', '60') | as_number }}"
       keepalives_idle: 30
+      retries: 2

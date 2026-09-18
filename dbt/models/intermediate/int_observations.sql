@@ -4,8 +4,8 @@
         incremental_strategy='append',
         on_schema_change='fail',
         pre_hook=["{{ delete_changed_person_slice() }}"],
-        indexes=[{'columns': ['event_key'], 'unique': True}, {'columns': ['patient_key']},
-                 {'columns': ['source_event_key']}, {'columns': ['source_vocabulary_id', 'source_code', 'observation_date']}]
+        indexes=[{'columns': ['patient_key']},
+                 {'columns': ['source_vocabulary_id', 'source_code', 'observation_date']}]
     )
 }}
 -- depends_on: {{ ref('int_key_registry') }}

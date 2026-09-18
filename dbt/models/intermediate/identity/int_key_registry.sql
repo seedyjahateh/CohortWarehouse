@@ -16,7 +16,8 @@
             "{{ register_natural_keys('clinical_code', key_registration_query('clinical_code')) }}",
             "{{ register_natural_keys('unit', key_registration_query('unit')) }}",
             "{{ register_natural_keys('omop_event', key_registration_query('omop_event')) }}",
-        ]
+        ],
+        post_hook=["select ops.analyze_key_registry()"]
     )
 }}
 -- depends_on: {{ ref('int_changed_person') }}

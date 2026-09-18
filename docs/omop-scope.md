@@ -25,7 +25,8 @@ SHA-256 `ae99be6e…c4771`, verified at load).
 | Field | Rule |
 |---|---|
 | `visit_end_date` (required) | encounter STOP date; START date when STOP is absent (`cw_event_crosswalk.end_date_imputed`) |
-| `drug_exposure_end_date` (required) | STOP date; START date when absent (flagged). `verbatim_end_date` keeps the supplied value |
+| `drug_exposure_end_date` (required) | STOP date; START date when absent **or impossible** (flagged). `verbatim_end_date` keeps the supplied value only when it is usable |
+| Impossible STOP (earlier than START) | Source defect (Synthea v3.3.0 medications: 108 of 77,303 rows at 1,183-person scale). The event is kept; the unusable end value is nulled and preserved as `source_stop_value` with `stop_status = stop_before_start_nulled`; the row is listed in `cw_exclusion_ledger` (`data_quality`, `event_retained = true`) and counted in `bi_data_profile`. The star carries no end date (date key 0); OMOP imputes from the start date |
 | `quantity`, `days_supply`, `refills`, `route`, `sig` | null — Synthea dispenses are not individual fills; nothing is inferred |
 | `*_type_concept_id` | Type Concept `OMOP4976890` (EHR), resolved by code from the loaded vocabulary |
 | `birth_datetime`, `death_datetime`, condition datetimes | null — source supplies dates only |

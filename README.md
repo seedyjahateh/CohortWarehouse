@@ -65,6 +65,10 @@ flowchart LR
 ## 3. Prerequisites
 
 - Windows 11 with WSL2 + Docker Desktop (≥ 8 GB for containers), or Linux with Docker.
+- **At least 30 GB free disk**, as the PRD's reference machine specifies. This is not a nominal figure: the
+  1,183-person benchmark (1.35M event rows) plus its releases, WAL and Docker's own disk exhausted a 16 GB
+  allowance mid-run, which wedged the Docker daemon. Check free space before a benchmark, and use
+  `python -m cohortwarehouse cleanup --dataset-id <id> --apply` to drop superseded releases.
 - Python 3.12, Git. Power BI Desktop (Windows) for the report. Java 17+ and the pinned Synthea jar only for
   benchmark generation.
 - Pinned versions: PostgreSQL 16.10, dbt-core 1.12.5 / dbt-postgres 1.11.0, Airflow 3.1.0

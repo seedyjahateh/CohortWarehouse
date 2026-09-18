@@ -1,3 +1,4 @@
+{{ config(materialized='table', indexes=[{'columns': ['patient_id']}, {'columns': ['source_code']}], post_hook=["analyze {{ this }}"]) }}
 -- Grain: one source condition record (identical records preserved) in the selected input revision.
 -- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (

@@ -4,8 +4,7 @@
         incremental_strategy='append',
         on_schema_change='fail',
         pre_hook=["{{ delete_changed_person_slice('person_id') }}"],
-        indexes=[{'columns': ['omop_event_id'], 'unique': True}, {'columns': ['person_id']},
-                 {'columns': ['destination_table']}, {'columns': ['source_event_key']}]
+        indexes=[{'columns': ['person_id']}, {'columns': ['destination_table']}]
     )
 }}
 -- depends_on: {{ ref('int_key_registry') }}

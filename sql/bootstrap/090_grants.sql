@@ -10,6 +10,7 @@ grant usage on sequence ops.quarantine_quarantine_id_seq, ops.load_attempt_attem
     ops.alert_event_alert_id_seq to cwr_loader;
 
 grant execute on function ops.analyze_raw() to cwr_loader;
+grant execute on function ops.analyze_key_registry() to cwr_transformer;
 
 -- ------------------------------------------------------------ transformer: reads raw, writes candidates
 grant usage on schema raw, ops, vocab, omop_ddl_ref to cwr_transformer;

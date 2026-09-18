@@ -26,6 +26,7 @@ run in every build and again in the quality gate · `gate` = Python checks in `c
 | Keys: unique/not_null all PKs; compound grains | schema YAML generic tests | dbt | auto |
 | Relationships incl. nullable FKs | `relationships` + `not_null` pairs | dbt | auto |
 | Temporal rules | `end_not_before_start`, `assert_structural_dates_plausible`, observation period order | dbt | auto |
+| Impossible source end dates kept, nulled, ledgered, imputed | fixture patient 06 (real Synthea defect shape) | lifecycle `test_02b` | auto |
 | Terminology | `assert_omop_concepts_valid`, `assert_reference_and_cohort_concepts_resolve` | dbt | auto (fictional vocabulary) / **open** (real vocabulary) |
 | MAP-06 coverage | gate `coverage:*` (cohort 100%, files ≥ 95%) | gate | auto (fictional vocabulary) |
 | GOV-01 CDM column contracts | `assert_omop_columns_match_official_ddl` | dbt | auto |

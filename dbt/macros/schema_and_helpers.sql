@@ -5,17 +5,15 @@
 
 
 {#- Rows of one raw file that belong to the selected input revision (Section 9.2).
-    For each patient the effective batch is the latest scoped batch whose declared scope contains the
-    patient, otherwise the latest full snapshot. Rows of superseded batches are never selected, so a
-    patient in scope but absent from the scoped batch has been removed. -#}
+    Each patient's effective batch is resolved once in stg_ops__effective_patient_batch; this is a plain
+    equi-join so the planner has real statistics on both sides. Rows of superseded batches are never
+    selected, so a patient in scope but absent from the scoped batch has been removed. -#}
 {% macro snapshot_rows(file_key, patient_column) %}
     select r.*
     from {{ source('raw', file_key) }} as r
-    cross join {{ ref('stg_ops__selected_revision') }} as rev
-    left join {{ ref('stg_ops__scoped_patient_batch') }} as scoped
-        on scoped.patient_id = r.{{ patient_column }}
-    where r._dataset_id = rev.dataset_id
-      and r._batch_id = coalesce(scoped.batch_id, rev.full_batch_id)
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.{{ patient_column }}
+       and eff.batch_id = r._batch_id
 {% endmacro %}
 
 

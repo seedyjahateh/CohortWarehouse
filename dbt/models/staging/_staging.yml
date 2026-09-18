@@ -16,6 +16,21 @@ models:
     columns:
       - {name: patient_id, data_tests: [unique, not_null]}
 
+  - name: stg_ops__relevant_batch
+    description: Batches contributing rows to the selected revision (latest full snapshot and later scoped batches).
+    config: {meta: {grain: "one contributing batch", owner: analytics-engineering}}
+    columns:
+      - {name: batch_id, data_tests: [unique, not_null]}
+
+  - name: stg_ops__effective_patient_batch
+    description: >
+      One row per referenced patient with the single batch whose rows are in force. Staging equi-joins this
+      table, which keeps join cardinality estimates honest (docs/decisions/0007).
+    config: {meta: {grain: "one referenced patient id", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+      - {name: batch_id, data_tests: [not_null]}
+
   - name: stg_synthea__patients
     description: Typed patients of the selected revision. Direct identifiers were never loaded.
     config: {meta: {grain: "one patient", owner: analytics-engineering}}

@@ -56,7 +56,9 @@ class DatabaseTarget:
             "user": self.user,
             "password": self.password,
             "application_name": "cohortwarehouse",
-            "connect_timeout": 10,
+            # A busy warehouse (million-row builds) can take a while to accept a connection; 10s was too
+            # tight and failed a benchmark stage mid-run.
+            "connect_timeout": int(os.environ.get("CW_PG_CONNECT_TIMEOUT", "60")),
         }
 
     def redacted(self) -> str:
