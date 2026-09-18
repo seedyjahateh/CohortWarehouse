@@ -24,7 +24,13 @@ retention:
 validation_profiles:
   fixture:
     allow_test_vocabulary: true
-    label: "Fixture validation with FICTIONAL test-only vocabulary"
+    # A fictional vocabulary maps only a handful of codes, so coverage percentages measure the test
+    # package, not the ETL. They are still computed and recorded, but as warnings: a run on a test
+    # vocabulary can exercise and measure the full path including publication. The release profile below
+    # is the only one that can certify a release, and it refuses a test-only vocabulary outright.
+    coverage_severity: warning
+    label: "Fixture validation with FICTIONAL test-only vocabulary (coverage not assessable)"
   release:
     allow_test_vocabulary: false
+    coverage_severity: blocking
     label: "Release validation with pinned OMOP vocabulary"

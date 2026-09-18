@@ -44,6 +44,8 @@ run in every build and again in the quality gate · `gate` = Python checks in `c
 | BI-01..05, NFR-06/07 | measures, reconciliation scenarios, screenshots, Performance Analyzer | `bi/measures.dax`, `docs/metric-contracts.md` | **open** (PBIX not yet built) |
 | ING-01 reproducible generation | two runs of the pinned configuration compared per file | `docs/evidence/generation-reproducibility.md` | auto-verified manually (content identical; record order is documented volatile metadata) |
 | NFR-02 ≤ 5 min for a 5% change | measured 214 s build+gate at 1,183 people / 1.34M rows | `docs/benchmark.md` | **met for build + gate**; publication unmeasured (vocabulary gate) |
-| NFR-01 ≤ 20 min load → publication | measured 620 s for load + build + gate, one run | `docs/benchmark.md` | **incomplete**: publication blocked by the fictional vocabulary; 3 runs not done |
+| NFR-01 ≤ 20 min load → publication | 759 s composite (load + build/gate + publish) with 2 threads; 2,041 s continuous under memory starvation | `docs/benchmark.md` | **partially met**; 3 consecutive runs not completed |
+| NFR-10 restore ≤ 15 min at benchmark scale | 62 s restore incl. checksum verification of 30 tables | `docs/benchmark.md` | **met** |
+| Coverage severity by validation profile | fixture profile warns (test vocabulary cannot be assessed), release profile blocks and refuses test vocabularies | `cohortwarehouse/quality.py`, `config/pipeline.yml` | auto |
 | NFR-08 SQL cohort p95 ≤ 2 s | 6 reference queries, 25 warm runs each, plans archived | `scripts/measure_query_latency.py`, `docs/evidence/sql-latency.md` | **met** (p95 2.2–16.4 ms) |
 | NFR-04 10 scheduled runs | Airflow evidence | Airflow | **open** |

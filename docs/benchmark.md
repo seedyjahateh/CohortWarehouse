@@ -71,6 +71,29 @@ with end-to-end throughput. The incremental delivery (62,027 rows) loaded in 8.6
 The first-ever build is much slower than later ones because it allocates ~2.25M surrogate keys in the
 registry; subsequent builds find them already registered.
 
+## Publication, restore and NFR-01 (load → publication ≤ 20 min)
+
+| Step | Measured | Conditions |
+|---|---|---|
+| Raw load of the batch | 78 s | quiet host |
+| Full refresh build + quality gate | 542 s | 2 dbt threads, warm registry, quiet host |
+| **Publication of the release** (30 tables: full copy, per-table checksums, atomic view switch, all in one transaction) | **139 s** | 2 threads, quiet host |
+| **Composite load → publication** | **759 s (12 min 39 s)** | **inside the 20-minute budget** |
+| Same pipeline, 1 dbt thread while the host had ~0.5 GB free RAM | build+gate 1,378 s, publish 663 s, total 2,041 s (34 min) | **outside the budget** |
+| Restore of the previous release (checksum verification of 30 tables + view switch + cohort recheck) | **62 s** (and 53 s to switch back) | **NFR-10 met** (budget 15 min) |
+
+**NFR-01 status: met on this host only under adequate conditions, and not yet as three consecutive runs.**
+The 759 s figure is the sum of separately measured steps on the same pinned revision (load, then
+build+gate, then publish), each observed directly. One *continuous* run measured end to end took 34 minutes
+because the host had ~0.5 GB free RAM and one dbt thread. Two attempts to run three consecutive measured
+runs were killed by the host's memory manager. The honest conclusion: the pipeline fits the budget with two
+dbt threads on a machine that meets the PRD's reference specification, and this laptop does not reliably
+meet it while also holding a 1.34M-row warehouse.
+
+Publication here is a **fixture-profile** release: it is recorded in `ops.release.validation_profile` as
+`fixture` because the loaded vocabulary is the fictional test package. Only the `release` profile, with a
+pinned real vocabulary, can certify a release.
+
 ## Incremental run — NFR-02 (≤ 5 minutes for a batch changing 5% of patients)
 
 Derived scoped delivery (`scripts/make_incremental_delivery.py`) changing **65 of 1,183 people (5.0%)**:
@@ -114,14 +137,12 @@ All **275 dbt tests pass** on the 1.34M-row delivery: keys, relationships, tempo
 source-to-target accounting, OMOP concept validity, the official-DDL column contract, cohort equality against
 independent SQL and against the OMOP mart, and the staging/intermediate/star/candidate consistency digests.
 
-Three checks fail, correctly: event-weighted mapping coverage for conditions (11.5%), medications (13.5%) and
-observations (7.5%), because the loaded vocabulary is the **fictional test package**. Cohort-code coverage is
-100%. Publication is therefore refused, so **NFR-01 (load → publication ≤ 20 min) cannot be closed**; the
-measured build+gate portion is 542 s + 78 s load = 620 s (10 min 20 s), leaving budget for publication, but
-that step remains unmeasured at scale.
-
-Fixture-scale publication (30 tables, full copy + checksums + atomic view switch) takes 1.3 s and restore
-well under a second — both far inside budget, but not at benchmark scale.
+Three coverage checks do not meet their thresholds — conditions 11.5%, medications 13.5%, observations 7.5%
+event-weighted (cohort code sets 100%) — because the loaded vocabulary is the **fictional test package**,
+which maps only a handful of codes. Under the `fixture` validation profile these are recorded as **warnings**
+(the percentages describe the test vocabulary, not the ETL), so the full path including publication can be
+exercised and measured. Under the `release` profile they are **blocking**, and that profile additionally
+refuses a test-only vocabulary outright. Every release records which profile validated it.
 
 ## Environment limits encountered (worth recording)
 
@@ -137,9 +158,9 @@ well under a second — both far inside budget, but not at benchmark scale.
 
 | Target | Status |
 |---|---|
-| NFR-01 ≤ 20 min load → publication, 3 runs | **incomplete**: load + build + gate measured at 10 min 20 s on one run; publication blocked by the vocabulary gate; 3-run repeat not done |
-| NFR-02 ≤ 5 min for a 5% change | **met for build + gate** (214 s); publication unmeasured |
+| NFR-01 ≤ 20 min load → publication, 3 runs | **partially met**: 759 s composite (load 78 s + build/gate 542 s + publish 139 s) with 2 threads on a quiet host; 2,041 s in one continuous run on a memory-starved host; 3 consecutive runs not completed (host memory) |
+| NFR-02 ≤ 5 min for a 5% change | **met for build + gate** (214 s); publication of a 5% change not separately measured |
+| NFR-10 restore ≤ 15 min | **met at benchmark scale**: 62 s including checksum verification of 30 tables |
 | NFR-07 BI p95 visual ≤ 2 s / page ≤ 5 s | **not started**: needs the Power BI report |
 | NFR-08 SQL cohort p95 ≤ 2 s over ≥ 20 runs with plans | **met**: p95 2.2–16.4 ms across six reference queries, 25 warm runs each, plans archived (`docs/evidence/sql-latency.md`) |
 | NFR-04 ten scheduled runs meeting 06:00 UTC | **not started**: needs a live Airflow deployment |
-| Recovery ≤ 15 min at benchmark scale | measured only at fixture scale (automated drill) |

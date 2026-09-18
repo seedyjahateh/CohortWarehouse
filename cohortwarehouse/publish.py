@@ -250,13 +250,14 @@ def _publish_locked(run_id: str) -> dict:
             """
             insert into ops.release (release_id, release_number, dataset_id, run_id, source_revision, source_batch_id,
                 as_of_date, vocabulary_version, build_fingerprint, git_sha, star_schema, omop_schema, bi_schema,
-                table_checksums, status)
-            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'published')
+                table_checksums, validation_profile, status)
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'published')
             """,
             (release_id, number, dataset_id, run_id, run["target_revision"], run["target_batch_id"],
              run["as_of_date"], run["vocabulary_version"], run["build_fingerprint"], run["git_sha"],
              schemas["star"], schemas["omop"], schemas["bi"],
-             jsonb({k: {"rows": v["rows"], "digest": v["digest"]} for k, v in checksums.items()})),
+             jsonb({k: {"rows": v["rows"], "digest": v["digest"]} for k, v in checksums.items()}),
+             (run["counts"] or {}).get("validation_profile")),
         )
         release = {"release_id": release_id, **{f"{m}_schema": s for m, s in schemas.items()}}
         _point_views(cur, release)

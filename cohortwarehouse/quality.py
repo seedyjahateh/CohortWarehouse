@@ -141,8 +141,10 @@ def _python_checks(conn, run: dict, profile: dict) -> list[Check]:
         checks.append(Check("terminology:vocabulary_unchanged_since_build", "terminology", "fail",
                             detail={"built_with": run["vocabulary_version"], "current": vocab["vocabulary_version"]}))
 
-    # MAP-06 coverage thresholds.
+    # MAP-06 coverage thresholds. Severity comes from the validation profile: with a fictional vocabulary the
+    # percentages describe the test package, so they are recorded as warnings instead of blocking.
     coverage_cfg = pipeline_config()["coverage"]
+    coverage_severity = profile.get("coverage_severity", "blocking")
     for row in fetch_all_dicts(conn, "select * from work_bi.bi_mapping_coverage"):
         category = row["category"]
         pct = float(row["event_weighted_coverage_pct"] or 0)
@@ -152,8 +154,11 @@ def _python_checks(conn, run: dict, profile: dict) -> list[Check]:
             required = coverage_cfg["category_event_weighted_min_pct"]
         else:
             continue
+        met = pct >= required
         checks.append(Check(f"coverage:{category.replace(' ', '_')}", "coverage",
-                            "pass" if pct >= required else "fail", observed=pct, threshold=f">= {required}",
+                            "pass" if met else ("fail" if coverage_severity == "blocking" else "warn"),
+                            severity=coverage_severity,
+                            observed=pct, threshold=f">= {required}",
                             detail={k: row[k] for k in row if k != "category"}))
 
     # Governance: column denylist on everything BI can import.
