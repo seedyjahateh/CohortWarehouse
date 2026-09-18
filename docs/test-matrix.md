@@ -42,5 +42,8 @@ run in every build and again in the quality gate · `gate` = Python checks in `c
 | DAG contract | schedule, order, params, retries, pool, no import I/O | dag | written; **executes in CI only** (Airflow not installed locally) |
 | DOC gates | every model: description, grain, owner; published models tested; exposure covers BI | unit `test_dbt_project_documentation` | auto |
 | BI-01..05, NFR-06/07 | measures, reconciliation scenarios, screenshots, Performance Analyzer | `bi/measures.dax`, `docs/metric-contracts.md` | **open** (PBIX not yet built) |
-| NFR-01/02/08 performance | benchmark runs, SQL plans | `python -m cohortwarehouse benchmark` | **open** (requires generated 1,000-patient benchmark) |
+| ING-01 reproducible generation | two runs of the pinned configuration compared per file | `docs/evidence/generation-reproducibility.md` | auto-verified manually (content identical; record order is documented volatile metadata) |
+| NFR-02 ≤ 5 min for a 5% change | measured 214 s build+gate at 1,183 people / 1.34M rows | `docs/benchmark.md` | **met for build + gate**; publication unmeasured (vocabulary gate) |
+| NFR-01 ≤ 20 min load → publication | measured 620 s for load + build + gate, one run | `docs/benchmark.md` | **incomplete**: publication blocked by the fictional vocabulary; 3 runs not done |
+| NFR-08 SQL cohort p95 ≤ 2 s | — | — | **open** |
 | NFR-04 10 scheduled runs | Airflow evidence | Airflow | **open** |
