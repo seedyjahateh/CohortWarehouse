@@ -65,6 +65,9 @@ services:
       - maintenance_work_mem=512MB
       - -c
       - max_wal_size=2GB
+    # Docker's default 64MB /dev/shm is too small for parallel query workers: at 1.3M event rows a gate test
+    # failed with 'could not resize shared memory segment ... No space left on device'.
+    shm_size: 1gb
     ports:
       - "127.0.0.1:${CW_PG_PORT:-5433}:5432"   # localhost only
     volumes:

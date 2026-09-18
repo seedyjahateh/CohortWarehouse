@@ -33,11 +33,16 @@ def _config_hash(config: dict) -> str:
 
 
 def synthea_arguments(generator: dict, output_dir: Path) -> list[str]:
+    # Both -r (reference date) and -e (end date) are pinned. Without -e Synthea simulates up to the wall
+    # clock, so two runs with identical seeds differ: measured 2026-09-17, 87,484 vs 87,488 encounters and
+    # 1,138,996 vs 1,139,160 observations. ING-01 requires reproducible clinical content.
+    end_date = str(generator["simulation_end_date"]).replace("-", "")
     args = [
         "-s", str(generator["seed"]),
         "-cs", str(generator["clinician_seed"]),
         "-p", str(generator["requested_population"]),
-        "-r", str(generator["simulation_end_date"]).replace("-", ""),
+        "-r", end_date,
+        "-e", end_date,
     ]
     for key, value in sorted(generator["properties"].items()):
         args.append(f"--{key}={str(value).format(output_dir=output_dir.as_posix())}")
