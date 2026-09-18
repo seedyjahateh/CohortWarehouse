@@ -31,6 +31,16 @@ models:
       - {name: patient_id, data_tests: [unique, not_null]}
       - {name: batch_id, data_tests: [not_null]}
 
+  - name: stg_ops__change_candidate
+    description: >
+      Patients whose source rows could differ from the last built candidate state: the scope of deliveries
+      since that build, plus pending people. Falls back to every referenced patient whenever narrowing cannot
+      be proven safe (full refresh, no previous build, a full snapshot delivered, historical rebuild).
+      Staging slices and person fingerprints are limited to this set (docs/decisions/0008).
+    config: {meta: {grain: "one candidate patient id", owner: analytics-engineering}}
+    columns:
+      - {name: patient_id, data_tests: [unique, not_null]}
+
   - name: stg_synthea__patients
     description: Typed patients of the selected revision. Direct identifiers were never loaded.
     config: {meta: {grain: "one patient", owner: analytics-engineering}}

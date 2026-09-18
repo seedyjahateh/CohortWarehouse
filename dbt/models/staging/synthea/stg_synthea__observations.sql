@@ -1,7 +1,19 @@
-{{ config(materialized='table', indexes=[{'columns': ['patient_id']}, {'columns': ['source_code', 'observation_date']}], post_hook=["analyze {{ this }}"]) }}
+{{
+    config(
+        materialized='incremental',
+        incremental_strategy='append',
+        on_schema_change='fail',
+        pre_hook=["{{ delete_change_candidate_slice() }}"],
+        indexes=[{'columns': ['patient_id']}, {'columns': ['source_code', 'observation_date']}],
+        post_hook=["analyze {{ this }}"]
+    )
+}}
+-- depends_on: {{ ref('stg_ops__change_candidate') }}
 -- Grain: one source observation record, including repeated same-time values, in the selected revision.
+-- occurrence_ordinal distinguishes identical rows. value_parse_status keeps missing, invalid, numeric and
+-- text apart so a missing or malformed value can never become zero (STG-02).
 with src as (
-    {{ snapshot_rows('observations', 'patient') }}
+    {{ snapshot_rows('observations', 'patient', with_ordinal=true) }}
 )
 
 select
@@ -9,6 +21,7 @@ select
     _batch_id as source_batch_id,
     _record_number as source_record_number,
     _row_fingerprint as source_row_fingerprint,
+    occurrence_ordinal,
     patient as patient_id,
     encounter as encounter_id,
     "date"::timestamptz as observed_at,

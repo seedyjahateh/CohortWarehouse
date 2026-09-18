@@ -1,4 +1,15 @@
-{{ config(materialized='table', indexes=[{'columns': ['encounter_id'], 'unique': True}, {'columns': ['patient_id']}, {'columns': ['start_date']}], post_hook=["analyze {{ this }}"]) }}
+{{
+    config(
+        materialized='incremental',
+        incremental_strategy='append',
+        on_schema_change='fail',
+        pre_hook=["{{ delete_change_candidate_slice() }}"],
+        indexes=[{'columns': ['encounter_id'], 'unique': True}, {'columns': ['patient_id']},
+                 {'columns': ['start_date']}],
+        post_hook=["analyze {{ this }}"]
+    )
+}}
+-- depends_on: {{ ref('stg_ops__change_candidate') }}
 -- Grain: one source encounter in the selected input revision. Timestamps normalised to UTC.
 -- An impossible STOP (earlier than START) is nulled but preserved in source_stop_value (macros/end_date_policy.sql).
 with src as (

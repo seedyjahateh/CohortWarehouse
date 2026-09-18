@@ -2,7 +2,58 @@
 -- content a full recomputation from the selected revision would produce. Compares event identity sets
 -- (source_event_key per person) between incremental tables and the non-incremental event views, and
 -- between intermediate tables, star facts and OMOP crosswalk. Zero rows = pass.
-with expected as (
+-- Staging is itself a change-candidate slice, so it is compared against the raw snapshot directly (by
+-- multiset counts per person and content fingerprint), not just against the models built from it.
+with raw_counts as (
+    select 'patients' as f, r.id as patient_id, r._row_fingerprint as fp, count(*) as n
+    from {{ source('raw', 'patients') }} as r
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.id and eff.batch_id = r._batch_id
+    group by 1, 2, 3
+    union all
+    select 'encounters', r.patient, r._row_fingerprint, count(*)
+    from {{ source('raw', 'encounters') }} as r
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.patient and eff.batch_id = r._batch_id
+    group by 1, 2, 3
+    union all
+    select 'conditions', r.patient, r._row_fingerprint, count(*)
+    from {{ source('raw', 'conditions') }} as r
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.patient and eff.batch_id = r._batch_id
+    group by 1, 2, 3
+    union all
+    select 'medications', r.patient, r._row_fingerprint, count(*)
+    from {{ source('raw', 'medications') }} as r
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.patient and eff.batch_id = r._batch_id
+    group by 1, 2, 3
+    union all
+    select 'observations', r.patient, r._row_fingerprint, count(*)
+    from {{ source('raw', 'observations') }} as r
+    inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
+        on eff.patient_id = r.patient and eff.batch_id = r._batch_id
+    group by 1, 2, 3
+),
+
+staging_counts as (
+    select 'patients' as f, patient_id, source_row_fingerprint as fp, count(*) as n
+    from {{ ref('stg_synthea__patients') }} group by 1, 2, 3
+    union all
+    select 'encounters', patient_id, source_row_fingerprint, count(*)
+    from {{ ref('stg_synthea__encounters') }} group by 1, 2, 3
+    union all
+    select 'conditions', patient_id, source_row_fingerprint, count(*)
+    from {{ ref('stg_synthea__conditions') }} group by 1, 2, 3
+    union all
+    select 'medications', patient_id, source_row_fingerprint, count(*)
+    from {{ ref('stg_synthea__medications') }} group by 1, 2, 3
+    union all
+    select 'observations', patient_id, source_row_fingerprint, count(*)
+    from {{ ref('stg_synthea__observations') }} group by 1, 2, 3
+),
+
+expected as (
     select 'conditions' as f, patient_id, source_event_key from {{ ref('int_condition_events') }} where patient_exists
     union all
     select 'medications', patient_id, source_event_key from {{ ref('int_medication_events') }} where patient_exists
@@ -48,6 +99,12 @@ candidates_recomputed as (
     where e.patient_exists
 )
 
+(select 'staging_missing_vs_raw' as problem, f, patient_id, fp || '#' || n from raw_counts
+ except select 'staging_missing_vs_raw', f, patient_id, fp || '#' || n from staging_counts)
+union all
+(select 'staging_stale_vs_raw', f, patient_id, fp || '#' || n from staging_counts
+ except select 'staging_stale_vs_raw', f, patient_id, fp || '#' || n from raw_counts)
+union all
 (select 'intermediate_missing' as problem, * from expected except select 'intermediate_missing', * from intermediate)
 union all
 (select 'intermediate_stale', * from intermediate except select 'intermediate_stale', * from expected)

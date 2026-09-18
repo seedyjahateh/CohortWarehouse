@@ -18,6 +18,12 @@ with rev as (
     select dataset_id from {{ ref('stg_ops__selected_revision') }}
 ),
 
+-- Both sides of the comparison are restricted to change candidates. int_person_fingerprint only holds
+-- candidates, so an unrestricted built state would report every other person as 'removed'.
+candidates as (
+    select patient_id from {{ ref('stg_ops__change_candidate') }}
+),
+
 current_state as (
     select dataset_id, patient_id, person_fingerprint from {{ ref('int_person_fingerprint') }}
 ),
@@ -26,6 +32,7 @@ built_state as (
     select b.dataset_id, b.patient_id, b.person_fingerprint
     from {{ source('ops', 'person_state_built') }} as b
     inner join rev on rev.dataset_id = b.dataset_id
+    inner join candidates as c on c.patient_id = b.patient_id
 ),
 
 pending as (

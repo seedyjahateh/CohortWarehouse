@@ -3,10 +3,7 @@
 -- identity = row fingerprint + occurrence ordinal.
 select
     o.*,
-    o.source_row_fingerprint || ':' || row_number() over (
-        partition by o.dataset_id, o.patient_id, o.source_row_fingerprint
-        order by o.source_batch_id, o.source_record_number
-    ) as source_event_key,
+    o.source_row_fingerprint || ':' || o.occurrence_ordinal as source_event_key,
     alias.omop_vocabulary_id as source_vocabulary_id,
     coalesce(alias.is_assumed_default, false) as vocabulary_assumed,
     coalesce(alias.omop_vocabulary_id, 'UNRESOLVED:(none)') || '|' || o.source_code as clinical_code_natural_key,

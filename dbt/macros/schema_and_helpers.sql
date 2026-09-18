@@ -8,13 +8,38 @@
     Each patient's effective batch is resolved once in stg_ops__effective_patient_batch; this is a plain
     equi-join so the planner has real statistics on both sides. Rows of superseded batches are never
     selected, so a patient in scope but absent from the scoped batch has been removed. -#}
-{% macro snapshot_rows(file_key, patient_column) %}
-    select r.*
+{% macro snapshot_rows(file_key, patient_column, with_ordinal=false) %}
+    select
+        r.*
+        {%- if with_ordinal %},
+        -- Occurrence ordinal for rows with no durable source id (Section 8.4.3). Computed here, where the
+        -- window is evaluated once per run, so downstream person-slice models can filter by an indexed
+        -- patient lookup instead of forcing the window over every row (measured: 55s -> ~1s per slice).
+        row_number() over (
+            partition by r._dataset_id, r.{{ patient_column }}, r._row_fingerprint
+            order by r._batch_id, r._record_number
+        ) as occurrence_ordinal
+        {%- endif %}
     from {{ source('raw', file_key) }} as r
     inner join {{ ref('stg_ops__effective_patient_batch') }} as eff
         on eff.patient_id = r.{{ patient_column }}
        and eff.batch_id = r._batch_id
+    {%- if is_incremental() %}
+    inner join {{ ref('stg_ops__change_candidate') }} as cc
+        on cc.patient_id = r.{{ patient_column }}
+    {%- endif %}
 {% endmacro %}
+
+
+{#- Staging person slices: only change candidates are rebuilt (stg_ops__change_candidate). -#}
+{% macro delete_change_candidate_slice(person_column='patient_id') -%}
+    {%- if is_incremental() -%}
+        delete from {{ this }}
+        where {{ person_column }} in (select patient_id from {{ ref('stg_ops__change_candidate') }})
+    {%- else -%}
+        select 1
+    {%- endif -%}
+{%- endmacro %}
 
 
 {#- Numeric parsing that distinguishes missing, invalid and zero (STG-02). -#}

@@ -3,10 +3,7 @@
 -- identical rows keep their multiplicity instead of being collapsed.
 select
     c.*,
-    c.source_row_fingerprint || ':' || row_number() over (
-        partition by c.dataset_id, c.patient_id, c.source_row_fingerprint
-        order by c.source_batch_id, c.source_record_number
-    ) as source_event_key,
+    c.source_row_fingerprint || ':' || c.occurrence_ordinal as source_event_key,
     alias.omop_vocabulary_id as source_vocabulary_id,
     coalesce(alias.is_assumed_default, false) as vocabulary_assumed,
     coalesce(alias.omop_vocabulary_id, 'UNRESOLVED:' || coalesce(c.source_system, '(none)'))

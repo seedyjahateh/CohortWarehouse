@@ -1,5 +1,15 @@
-{{ config(materialized='table', indexes=[{'columns': ['patient_id'], 'unique': True}], post_hook=["analyze {{ this }}"]) }}
--- Grain: one patient in the selected input revision.
+{{
+    config(
+        materialized='incremental',
+        incremental_strategy='append',
+        on_schema_change='fail',
+        pre_hook=["{{ delete_change_candidate_slice() }}"],
+        indexes=[{'columns': ['patient_id'], 'unique': True}],
+        post_hook=["analyze {{ this }}"]
+    )
+}}
+-- depends_on: {{ ref('stg_ops__change_candidate') }}
+-- Grain: one patient in the selected input revision. Rebuilt only for change candidates.
 with src as (
     {{ snapshot_rows('patients', 'id') }}
 )
